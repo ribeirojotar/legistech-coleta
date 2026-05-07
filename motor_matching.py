@@ -4,7 +4,6 @@ from dotenv import load_dotenv, find_dotenv
 from supabase import create_client, Client
 
 load_dotenv(find_dotenv(), override=True)
-
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
@@ -26,19 +25,24 @@ def executar_matching():
 
     for perfil in perfis:
         print(f"\n🎯 Perfil: {perfil['nome']}")
+        # Normaliza palavras-chave (remove acentos e espaços)
         palavras = [remover_acentos(p) for p in perfil['palavras_chave']]
         ufs_alvo = perfil['uf_interesse']
+        
         contagem_perfil = 0
 
         for lic in licitacoes:
+            # Filtro de UF
             if lic['uf'] not in ufs_alvo:
                 continue
 
             objeto_limpo = remover_acentos(lic['objeto'])
-
+            
+            # Busca por cada palavra
             for p in palavras:
                 if p in objeto_limpo:
                     print(f"   ✅ MATCH! Palavra '{p}' encontrada em: {lic['objeto'][:50]}...")
+                    
                     match_data = {
                         "perfil_id": perfil['id'],
                         "licitacao_id": lic['id'],
@@ -46,7 +50,7 @@ def executar_matching():
                     }
                     supabase.table("matches").upsert(match_data).execute()
                     contagem_perfil += 1
-                    break
+                    break # Encontrou uma palavra, pula para a próxima licitação
 
         print(f"   📊 Total para este cliente: {contagem_perfil} matches.")
 

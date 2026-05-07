@@ -4,9 +4,6 @@ from google import genai
 from dotenv import load_dotenv, find_dotenv
 from supabase import create_client, Client
 
-# ==========================================
-# 1. CONFIGURAÇÕES INICIAIS
-# ==========================================
 load_dotenv(find_dotenv(), override=True)
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -16,10 +13,6 @@ key: str = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
 print("--- 🚀 Iniciando Motor de Analise Semantica (IA) ---")
-
-# ==========================================
-# 2. FUNÇÕES AUXILIARES
-# ==========================================
 
 def analisar_licitacao_com_ia(objeto, perfil_nome, palavras_chave):
     prompt = f"""
@@ -69,10 +62,6 @@ def salvar_match(perfil_id, licitacao_id, score, resumo):
     except Exception as e:
         print(f"   ❌ Erro ao salvar match: {e}")
 
-
-# ==========================================
-# 3. ROTINA PRINCIPAL
-# ==========================================
 
 def executar_analise():
     print("1. Buscando clientes ativos...\n")
