@@ -2,12 +2,17 @@ name: LegisTech — Coleta e Matching diário
 
 on:
   schedule:
-    - cron: '0 9 * * 1-5'  # 06h horário de Brasília, segunda a sexta
-  workflow_dispatch:         # permite rodar manualmente também
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch:
 
 jobs:
   coletar-e-processar:
     runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
     steps:
       - name: Baixar o código
@@ -22,20 +27,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Rodar coletor PNCP
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python coletor.py --ufs PI MA --dias 1
 
       - name: Rodar motor de matching
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python motor_matching.py
 
       - name: Rodar motor de IA
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python motor_ia.py
