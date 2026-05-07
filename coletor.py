@@ -21,8 +21,12 @@ from supabase import create_client, Client
 # ─── Carregar .env com override (garante que mudanças no .env são lidas) ──────
 load_dotenv(find_dotenv(), override=True)
 
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
+url: str = os.environ.get("SUPABASE_URL") or os.getenv("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY") or os.getenv("SUPABASE_KEY")
+
+if not url or not key:
+    raise ValueError(f"Credenciais não encontradas. URL: {bool(url)}, KEY: {bool(key)}")
+
 supabase: Client = create_client(url, key)
 
 # ─── Configurações ────────────────────────────────────────────────────────────

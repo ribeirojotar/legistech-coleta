@@ -8,10 +8,21 @@ load_dotenv(find_dotenv(), override=True)
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-url: str = os.getenv("SUPABASE_URL")
-key: str = os.getenv("SUPABASE_KEY")
+url: str = os.environ.get("SUPABASE_URL") or os.getenv("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY") or os.getenv("SUPABASE_KEY")
+
+if not url or not key:
+    raise ValueError(f"Credenciais não encontradas. URL: {bool(url)}, KEY: {bool(key)}")
+
 supabase: Client = create_client(url, key)
 
+url: str = os.environ.get("SUPABASE_URL") or os.getenv("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY") or os.getenv("SUPABASE_KEY")
+
+if not url or not key:
+    raise ValueError(f"Credenciais não encontradas. URL: {bool(url)}, KEY: {bool(key)}")
+
+supabase: Client = create_client(url, key)
 print("--- 🚀 Iniciando Motor de Analise Semantica (IA) ---")
 
 def analisar_licitacao_com_ia(objeto, perfil_nome, palavras_chave):

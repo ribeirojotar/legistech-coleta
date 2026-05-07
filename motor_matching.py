@@ -2,10 +2,14 @@ import os
 import unicodedata
 from dotenv import load_dotenv, find_dotenv
 from supabase import create_client, Client
-
 load_dotenv(find_dotenv(), override=True)
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
+
+url: str = os.environ.get("SUPABASE_URL") or os.getenv("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY") or os.getenv("SUPABASE_KEY")
+
+if not url or not key:
+    raise ValueError(f"Credenciais não encontradas. URL: {bool(url)}, KEY: {bool(key)}")
+
 supabase: Client = create_client(url, key)
 
 def remover_acentos(texto):
