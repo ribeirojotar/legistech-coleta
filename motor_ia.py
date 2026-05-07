@@ -7,7 +7,12 @@ from supabase import create_client, Client
 # ==========================================
 # 1. CONFIGURAÇÕES INICIAIS
 # ==========================================
+# ❌ linha atual
 load_dotenv(override=True)
+
+# ✅ substituir por
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv(), override=True)
 
 # Usando o modelo que está ATIVO na sua conta (Gemini 2.5 Flash)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
