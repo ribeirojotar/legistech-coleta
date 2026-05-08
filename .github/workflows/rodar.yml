@@ -25,12 +25,7 @@ jobs:
 
       - name: Instalar dependências
         run: pip install -r requirements.txt
-
-      - name: Debug secrets
-        run: |
-          echo "Primeiros chars URL: ${SUPABASE_URL:0:15}"
-          echo "Primeiros chars KEY: ${SUPABASE_KEY:0:15}"
-
+     
       - name: Rodar coletor PNCP
         run: python coletor.py --ufs PI MA --dias 1
 
