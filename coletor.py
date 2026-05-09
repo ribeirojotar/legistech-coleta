@@ -154,13 +154,14 @@ def salvar_no_supabase(lista: list) -> tuple[int, int]:
     erros  = 0
 
     for lic in lista:
-        item = {
-            "orgao_nome":      lic.get("orgaoEntidade", {}).get("razaoSocial"),
-            "objeto":          lic.get("objetoCompra"),
-            "data_publicacao": lic.get("dataPublicacaoPncp", "").split("T")[0] or None,
-            "uf":              extrair_uf(lic),
-            "link_pncp":       lic.get("linkSistemaOrigem"),
-        }
+  item = {
+    "orgao_nome":      lic.get("orgaoEntidade", {}).get("razaoSocial"),
+    "objeto":          lic.get("objetoCompra"),
+    "data_publicacao": lic.get("dataPublicacaoPncp", "").split("T")[0] or None,
+    "uf":              extrair_uf(lic),
+    "link_pncp":       lic.get("linkSistemaOrigem"),
+    "valor_estimado":  lic.get("valorTotalEstimado"),  # ← linha nova
+}
 
         # Ignorar registros sem link (não conseguimos identificar duplicatas)
         if not item["link_pncp"]:
