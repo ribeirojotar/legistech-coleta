@@ -13,6 +13,7 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
 
     steps:
       - name: Baixar o código
@@ -25,7 +26,7 @@ jobs:
 
       - name: Instalar dependências
         run: pip install -r requirements.txt
-     
+
       - name: Rodar coletor PNCP
         run: python coletor.py --ufs PI MA --dias 1
 
@@ -34,3 +35,6 @@ jobs:
 
       - name: Rodar motor de IA
         run: python motor_ia.py
+
+      - name: Enviar alertas Telegram
+        run: python alertas_telegram.py
