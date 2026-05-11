@@ -147,7 +147,7 @@ def salvar_no_supabase(lista: list) -> tuple[int, int]:
     Usa upsert para evitar duplicatas (baseado em link_pncp como chave).
     Retorna (salvos, erros).
     """
-     if not lista:
+  if not lista:
         return 0, 0
 
     salvos = 0
