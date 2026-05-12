@@ -28,13 +28,13 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Rodar coletor PNCP
-        run: python coletor.py --ufs PI MA --dias 1
+        run: python api/coletor.py --ufs PI MA --dias 1
 
       - name: Rodar motor de matching
-        run: python motor_matching.py
+        run: python api/motor_matching.py
 
       - name: Rodar motor de IA
-        run: python motor_ia.py
+        run: python api/motor_ia.py
 
       - name: Enviar alertas Telegram
-        run: python alertas_telegram.py
+        run: python api/alertas_telegram.py
