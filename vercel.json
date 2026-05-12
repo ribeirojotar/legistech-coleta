@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/legistech_dashboard.html"
+    }
+  ]
+}
