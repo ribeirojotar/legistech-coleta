@@ -605,7 +605,7 @@ async function init() {
   try {
     const [matches, perfis, lics] = await Promise.all([
       supabase('matches', '?select=id,perfil_id,licitacao_id,score_calculado,notificado,status&order=score_calculado.desc&limit=100'),
-      supabase('perfis_empresa', '?select=id,nome,segmento,uf_interesse,palavras_chave,palavras_excluir,ativo'),
+     supabase('perfis_empresa', '?select=id,nome,uf_interesse,palavras_chave,palavras_excluir,ativo'),
       supabase('licitacoes_pncp', '?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao&order=id.desc&limit=200'),
     ]);
 
