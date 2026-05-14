@@ -34,7 +34,7 @@ jobs:
         run: python scripts/motor_matching.py
 
       - name: Rodar motor de IA
-        run: python api/motor_ia.py
+        run: python scripts/motor_ia.py
 
       - name: Enviar alertas Telegram
-        run: python api/alertas_telegram.py
+        run: python scripts/alertas_telegram.py
