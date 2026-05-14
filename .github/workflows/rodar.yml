@@ -28,10 +28,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Rodar coletor PNCP
-        run: python api/coletor.py --ufs PI MA --dias 1
+        run: python scripts/coletor.py --ufs PI MA --dias 1
 
       - name: Rodar motor de matching
-        run: python api/motor_matching.py
+        run: python scripts/motor_matching.py
 
       - name: Rodar motor de IA
         run: python api/motor_ia.py
