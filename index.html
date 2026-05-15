@@ -894,7 +894,7 @@ function renderClientes() {
       <div class="match-card">
         <div>
           <div class="match-client">
-            <span class="client-tag gold">${p.segmento || 'Sem segmento'}</span>
+            <span class="client-tag gold">${p.segmento ? p.segmento : 'Sem segmento'}</span>
             <div class="client-dot ${p.ativo ? '' : 'inactive'}" style="margin-left:4px"></div>
             <span style="font-size:11px;color:var(--text-dim)">${p.ativo ? 'Ativo' : 'Inativo'}</span>
           </div>
