@@ -719,7 +719,7 @@ function renderMatches() {
     <div id="match-list">
       ${matches.length === 0
         ? '<div class="empty">Nenhum match encontrado.<br>Rode o motor de matching para gerar resultados.</div>'
-        : matches.map(m => {
+        : renderMatches(m => {
             const lic  = licMap[m.licitacao_id] || {};
             const perf = perfMap[m.perfil_id] || {};
             const score = m.score_calculado || 0;
