@@ -6,474 +6,87 @@
 <title>LegisTech — Painel do Assessor</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --navy: #0B1628;
-    --navy-mid: #152035;
-    --navy-light: #1E2F47;
-    --gold: #C9A84C;
-    --gold-light: #E8C96A;
-    --gold-dim: rgba(201,168,76,0.15);
-    --cream: #F5F0E8;
-    --white: #FFFFFF;
-    --text-dim: rgba(245,240,232,0.5);
-    --text-mid: rgba(245,240,232,0.75);
-    --green: #2ECC8F;
-    --red: #E05555;
-    --blue: #4A9EF5;
-    --border: rgba(201,168,76,0.2);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--navy);
-    color: var(--cream);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* TOPBAR */
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 28px;
-    background: var(--navy-mid);
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .logo {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 20px;
-    letter-spacing: -0.5px;
-    color: var(--cream);
-  }
-  .logo span { color: var(--gold); }
-
-  .topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .date-badge {
-    font-size: 12px;
-    color: var(--text-dim);
-    font-weight: 300;
-  }
-
-  .btn-alert {
-    background: var(--gold);
-    color: var(--navy);
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    transition: all 0.2s;
-  }
-  .btn-alert:hover { background: var(--gold-light); transform: translateY(-1px); }
-
-  /* LAYOUT */
-  .layout {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    min-height: calc(100vh - 57px);
-  }
-
-  /* SIDEBAR */
-  .sidebar {
-    background: var(--navy-mid);
-    border-right: 1px solid var(--border);
-    padding: 24px 0;
-  }
-
-  .sidebar-section {
-    padding: 0 16px;
-    margin-bottom: 8px;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-  }
-
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 20px;
-    font-size: 13px;
-    color: var(--text-mid);
-    cursor: pointer;
-    border-left: 2px solid transparent;
-    transition: all 0.15s;
-  }
-  .nav-item:hover { background: var(--gold-dim); color: var(--cream); }
-  .nav-item.active {
-    border-left-color: var(--gold);
-    background: var(--gold-dim);
-    color: var(--gold);
-    font-weight: 500;
-  }
-
-  .nav-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 16px 20px;
-  }
-
-  /* CLIENTES no sidebar */
-  .client-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 20px;
-    font-size: 12px;
-    color: var(--text-mid);
-    cursor: pointer;
-    transition: all 0.15s;
-    border-left: 2px solid transparent;
-  }
-  .client-item:hover { background: var(--gold-dim); color: var(--cream); }
-  .client-item.active { border-left-color: var(--gold); color: var(--gold); }
-
-  .client-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--green);
-    flex-shrink: 0;
-  }
-  .client-dot.inactive { background: var(--text-dim); }
-
-  .badge-count {
-    margin-left: auto;
-    background: var(--gold-dim);
-    color: var(--gold);
-    font-size: 10px;
-    font-weight: 600;
-    padding: 1px 7px;
-    border-radius: 20px;
-  }
-
-  /* MAIN CONTENT */
-  .main {
-    padding: 28px;
-    overflow-y: auto;
-  }
-
-  /* METRICS */
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-bottom: 28px;
-  }
-
-  .metric-card {
-    background: var(--navy-light);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    transition: border-color 0.2s;
-  }
-  .metric-card:hover { border-color: var(--gold); }
-
-  .metric-label {
-    font-size: 11px;
-    color: var(--text-dim);
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-  }
-  .metric-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--cream);
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .metric-value.gold { color: var(--gold); }
-  .metric-value.green { color: var(--green); }
-  .metric-sub { font-size: 11px; color: var(--text-dim); }
-
-  /* SECTION HEADER */
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-  .section-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-  }
-  .section-sub { font-size: 12px; color: var(--text-dim); }
-
-  /* TABS */
-  .tabs {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 16px;
-    background: var(--navy-light);
-    border-radius: 8px;
-    padding: 4px;
-    width: fit-content;
-  }
-  .tab {
-    padding: 6px 16px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 6px;
-    cursor: pointer;
-    color: var(--text-dim);
-    transition: all 0.15s;
-  }
-  .tab.active {
-    background: var(--gold);
-    color: var(--navy);
-    font-weight: 700;
-  }
-  .tab:hover:not(.active) { color: var(--cream); }
-
-  /* MATCH CARDS */
-  .match-card {
-    background: var(--navy-light);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    margin-bottom: 10px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 16px;
-    align-items: start;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .match-card:hover { border-color: rgba(201,168,76,0.5); transform: translateX(2px); }
-  .match-card.priority { border-left: 3px solid var(--gold); }
-
-  .match-client {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-  }
-  .client-tag {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: var(--gold-dim);
-    color: var(--gold);
-  }
-  .client-tag.blue { background: rgba(74,158,245,0.15); color: var(--blue); }
-  .client-tag.green { background: rgba(46,204,143,0.15); color: var(--green); }
-
-  .match-objeto {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--cream);
-    margin-bottom: 6px;
-    line-height: 1.4;
-  }
-
-  .match-meta {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-  .match-meta span { display: flex; align-items: center; gap: 4px; }
-
-  .score-ring {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 56px;
-  }
-  .score-num {
-    font-family: 'Syne', sans-serif;
-    font-size: 24px;
-    font-weight: 800;
-    line-height: 1;
-  }
-  .score-num.s-high { color: var(--green); }
-  .score-num.s-mid { color: var(--gold); }
-  .score-num.s-low { color: var(--text-dim); }
-  .score-label { font-size: 9px; color: var(--text-dim); letter-spacing: 0.5px; margin-top: 2px; }
-
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 20px;
-    letter-spacing: 0.3px;
-  }
-  .status-novo { background: rgba(74,158,245,0.15); color: var(--blue); }
-  .status-analisando { background: rgba(201,168,76,0.15); color: var(--gold); }
-  .status-participando { background: rgba(46,204,143,0.15); color: var(--green); }
-
-  .btn-small {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 5px 12px;
-    border-radius: 5px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-mid);
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .btn-small:hover { border-color: var(--gold); color: var(--gold); }
-  .btn-small.primary {
-    background: var(--gold);
-    color: var(--navy);
-    border-color: var(--gold);
-    font-weight: 700;
-  }
-  .btn-small.primary:hover { background: var(--gold-light); }
-
-  .card-actions {
-    display: flex;
-    gap: 6px;
-    margin-top: 10px;
-  }
-
-  /* EMPTY STATE */
-  .empty {
-    text-align: center;
-    padding: 48px;
-    color: var(--text-dim);
-    font-size: 13px;
-  }
-
-  /* LOADING */
-  .loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 60px;
-    gap: 12px;
-    color: var(--text-dim);
-    font-size: 13px;
-  }
-  .spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* MOBILE */
-  @media (max-width: 768px) {
-    .layout { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
-    .metrics { grid-template-columns: repeat(2, 1fr); }
-    .main { padding: 16px; }
-    .topbar { padding: 12px 16px; }
-  }
-
-  /* TOAST */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--navy-light);
-    border: 1px solid var(--gold);
-    border-radius: 8px;
-    padding: 12px 20px;
-    font-size: 13px;
-    color: var(--cream);
-    z-index: 999;
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-
-  /* MODAL */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(11,22,40,0.85);
-    z-index: 200;
-    align-items: center;
-    justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--navy-mid);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 28px;
-    width: 90%;
-    max-width: 520px;
-  }
-  .modal-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    margin-bottom: 20px;
-    color: var(--cream);
-  }
-  .modal-field {
-    margin-bottom: 14px;
-  }
-  .modal-label {
-    font-size: 11px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 6px;
-  }
-  .modal-input {
-    width: 100%;
-    background: var(--navy-light);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 9px 12px;
-    font-size: 13px;
-    color: var(--cream);
-    font-family: 'DM Sans', sans-serif;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .modal-input:focus { border-color: var(--gold); }
-  .modal-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-    margin-top: 20px;
-  }
+:root{--navy:#0B1628;--navy-mid:#152035;--navy-light:#1E2F47;--gold:#C9A84C;--gold-light:#E8C96A;--gold-dim:rgba(201,168,76,0.15);--cream:#F5F0E8;--text-dim:rgba(245,240,232,0.5);--text-mid:rgba(245,240,232,0.75);--green:#2ECC8F;--red:#E05555;--blue:#4A9EF5;--border:rgba(201,168,76,0.2)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--cream);min-height:100vh;overflow-x:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:var(--navy-mid);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px;color:var(--cream)}
+.logo span{color:var(--gold)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.date-badge{font-size:12px;color:var(--text-dim);font-weight:300}
+.btn-alert{background:var(--gold);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.5px;transition:all .2s}
+.btn-alert:hover{background:var(--gold-light);transform:translateY(-1px)}
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 57px)}
+.sidebar{background:var(--navy-mid);border-right:1px solid var(--border);padding:24px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;color:var(--text-mid);cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.nav-item:hover{background:var(--gold-dim);color:var(--cream)}
+.nav-item.active{border-left-color:var(--gold);background:var(--gold-dim);color:var(--gold);font-weight:500}
+.nav-divider{height:1px;background:var(--border);margin:16px 20px}
+.client-item{display:flex;align-items:center;gap:10px;padding:8px 20px;font-size:12px;color:var(--text-mid);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+.client-item:hover{background:var(--gold-dim);color:var(--cream)}
+.client-item.active{border-left-color:var(--gold);color:var(--gold)}
+.client-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.client-dot.inactive{background:var(--text-dim)}
+.badge-count{margin-left:auto;background:var(--gold-dim);color:var(--gold);font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px}
+.main{padding:28px;overflow-y:auto}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.metric-card{background:var(--navy-light);border:1px solid var(--border);border-radius:10px;padding:18px 20px;transition:border-color .2s}
+.metric-card:hover{border-color:var(--gold)}
+.metric-label{font-size:11px;color:var(--text-dim);letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase}
+.metric-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--cream);line-height:1;margin-bottom:4px}
+.metric-value.gold{color:var(--gold)}.metric-value.green{color:var(--green)}
+.metric-sub{font-size:11px;color:var(--text-dim)}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.3px}
+.section-sub{font-size:12px;color:var(--text-dim)}
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--navy-light);border-radius:8px;padding:4px;width:fit-content}
+.tab{padding:6px 16px;font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;color:var(--text-dim);transition:all .15s}
+.tab.active{background:var(--gold);color:var(--navy);font-weight:700}
+.tab:hover:not(.active){color:var(--cream)}
+.match-card{background:var(--navy-light);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;transition:all .15s}
+.match-card:hover{border-color:rgba(201,168,76,.5);transform:translateX(2px)}
+.match-card.priority{border-left:3px solid var(--gold)}
+.match-client{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.client-tag{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:2px 8px;border-radius:4px;background:var(--gold-dim);color:var(--gold)}
+.client-tag.blue{background:rgba(74,158,245,.15);color:var(--blue)}
+.client-tag.green{background:rgba(46,204,143,.15);color:var(--green)}
+.match-objeto{font-size:14px;font-weight:500;color:var(--cream);margin-bottom:6px;line-height:1.4}
+.match-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--text-dim)}
+.score-ring{display:flex;flex-direction:column;align-items:center;min-width:56px}
+.score-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;line-height:1}
+.score-num.s-high{color:var(--green)}.score-num.s-mid{color:var(--gold)}.score-num.s-low{color:var(--text-dim)}
+.score-label{font-size:9px;color:var(--text-dim);letter-spacing:.5px;margin-top:2px}
+.status-pill{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.3px}
+.status-novo{background:rgba(74,158,245,.15);color:var(--blue)}
+.status-analisando{background:rgba(201,168,76,.15);color:var(--gold)}
+.status-participando{background:rgba(46,204,143,.15);color:var(--green)}
+.status-descartado{background:rgba(224,85,85,.15);color:var(--red)}
+.btn-small{font-size:11px;font-weight:600;padding:5px 12px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text-mid);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-small:hover{border-color:var(--gold);color:var(--gold)}
+.btn-small.primary{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:700}
+.btn-small.primary:hover{background:var(--gold-light)}
+.btn-small.danger{border-color:rgba(224,85,85,.4);color:var(--red)}
+.btn-small.danger:hover{border-color:var(--red);background:rgba(224,85,85,.1)}
+.card-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.empty{text-align:center;padding:48px;color:var(--text-dim);font-size:13px}
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;gap:12px;color:var(--text-dim);font-size:13px}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.layout{grid-template-columns:1fr}.sidebar{display:none}.metrics{grid-template-columns:repeat(2,1fr)}.main{padding:16px}.topbar{padding:12px 16px}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy-light);border:1px solid var(--gold);border-radius:8px;padding:12px 20px;font-size:13px;color:var(--cream);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,22,40,.85);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--navy-mid);border:1px solid var(--border);border-radius:14px;padding:28px;width:90%;max-width:520px}
+.modal-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:20px;color:var(--cream)}
+.modal-field{margin-bottom:14px}
+.modal-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.modal-input{width:100%;background:var(--navy-light);border:1px solid var(--border);border-radius:6px;padding:9px 12px;font-size:13px;color:var(--cream);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+.modal-input:focus{border-color:var(--gold)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 </style>
 </head>
 <body>
-
-<!-- TOPBAR -->
 <div class="topbar">
   <div class="logo">Legis<span>Tech</span> <span style="font-size:12px;font-weight:400;color:var(--text-dim);margin-left:4px">Painel do Assessor</span></div>
   <div class="topbar-right">
@@ -481,484 +94,281 @@
     <button class="btn-alert" onclick="dispararAlertas()">⚡ Disparar Alertas</button>
   </div>
 </div>
-
-<!-- LAYOUT -->
 <div class="layout">
-
-  <!-- SIDEBAR -->
   <div class="sidebar">
     <div style="padding:0 16px 12px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase">Menu</div>
-
-    <div class="nav-item active" onclick="showView('matches')">
-      <span>📊</span> Matches do Dia
-    </div>
-    <div class="nav-item" onclick="showView('licitacoes')">
-      <span>📋</span> Licitações
-    </div>
-    <div class="nav-item" onclick="showView('clientes')">
-      <span>🏢</span> Clientes
-    </div>
-
+    <div class="nav-item active" onclick="showView('matches')"><span>📊</span> Matches do Dia</div>
+    <div class="nav-item" onclick="showView('licitacoes')"><span>📋</span> Licitações</div>
+    <div class="nav-item" onclick="showView('clientes')"><span>🏢</span> Clientes</div>
     <div class="nav-divider"></div>
-
     <div style="padding:0 16px 8px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase">Clientes</div>
-
     <div id="sidebar-clients"></div>
   </div>
-
-  <!-- MAIN -->
   <div class="main" id="main-content">
     <div class="loading"><div class="spinner"></div> Carregando dados...</div>
   </div>
-
 </div>
-
-<!-- MODAL NOVO CLIENTE -->
 <div class="modal-overlay" id="modal-cliente">
   <div class="modal">
     <div class="modal-title">Novo Cliente</div>
-    <div class="modal-field">
-      <div class="modal-label">Nome da empresa</div>
-      <input class="modal-input" id="f-nome" placeholder="Ex: Construtora ABC Ltda">
-    </div>
-    <div class="modal-field">
-      <div class="modal-label">Segmento</div>
-      <input class="modal-input" id="f-segmento" placeholder="Ex: Construção Civil">
-    </div>
-    <div class="modal-field">
-      <div class="modal-label">Palavras-chave (separadas por vírgula)</div>
-      <input class="modal-input" id="f-palavras" placeholder="Ex: pavimentação, obra, construção">
-    </div>
-    <div class="modal-field">
-      <div class="modal-label">UFs de interesse (separadas por vírgula)</div>
-      <input class="modal-input" id="f-ufs" placeholder="Ex: PI, MA, CE">
-    </div>
-    <div class="modal-field">
-      <div class="modal-label">Palavras a excluir (separadas por vírgula)</div>
-      <input class="modal-input" id="f-excluir" placeholder="Ex: fornecimento de material, aquisição">
-    </div>
+    <div class="modal-field"><div class="modal-label">Nome da empresa</div><input class="modal-input" id="f-nome" placeholder="Ex: Construtora ABC Ltda"></div>
+    <div class="modal-field"><div class="modal-label">Segmento</div><input class="modal-input" id="f-segmento" placeholder="Ex: Construção Civil"></div>
+    <div class="modal-field"><div class="modal-label">Palavras-chave (separadas por vírgula)</div><input class="modal-input" id="f-palavras" placeholder="Ex: pavimentação, obra, construção"></div>
+    <div class="modal-field"><div class="modal-label">UFs de interesse (separadas por vírgula)</div><input class="modal-input" id="f-ufs" placeholder="Ex: PI, MA, CE"></div>
+    <div class="modal-field"><div class="modal-label">Palavras a excluir (separadas por vírgula)</div><input class="modal-input" id="f-excluir" placeholder="Ex: fornecimento de material, aquisição"></div>
     <div class="modal-actions">
       <button class="btn-small" onclick="fecharModal()">Cancelar</button>
       <button class="btn-small primary" onclick="salvarCliente()">Salvar Cliente</button>
     </div>
   </div>
 </div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
-
 <script>
-// ─── CONFIGURAÇÃO SUPABASE ─────────────────────────────────────────────────
-const SUPABASE_URL = 'https://ojrowbvwnraqdikrvnlv.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qcm93YnZ3bnJhcWRpa3J2bmx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTE0MzcsImV4cCI6MjA5MzQyNzQzN30.YefvG7spS8lyOHaylTzUmByJhGuc9A-lsWKLc3KcqIA';
+const SUPABASE_URL='https://ojrowbvwnraqdikrvnlv.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qcm93YnZ3bnJhcWRpa3J2bmx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTE0MzcsImV4cCI6MjA5MzQyNzQzN30.YefvG7spS8lyOHaylTzUmByJhGuc9A-lsWKLc3KcqIA';
+const H={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};
 
-async function supabase(table, query = '') {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query}`, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-    }
-  });
+async function sbGet(table,query=''){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/'+table+query,{headers:H});
+  if(!r.ok){console.error('GET error',r.status,await r.text());return[];}
   return r.json();
 }
 
-async function supabasePost(table, data) {
- function filterTab(tipo, el) {
-
-  document.querySelectorAll('.tab')
-    .forEach(t => t.classList.remove('active'));
-
-  el.classList.add('active');
-
-  let matches = [...allMatches];
-
-  if (activeClientFilter) {
-    matches = matches.filter(
-      m => m.perfil_id == activeClientFilter
-    );
-  }
-
-  if (tipo === 'novos') {
-    matches = matches.filter(
-      m => !m.status || m.status === 'novo'
-    );
-  }
-
-  if (tipo === 'altos') {
-    matches = matches.filter(
-      m => m.score_calculado >= 80
-    );
-  }
-
-  renderFilteredMatches(matches);
+async function sbPatch(table,id,data){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/'+table+'?id=eq.'+id,{
+    method:'PATCH',
+    headers:{...H,'Prefer':'return=minimal'},
+    body:JSON.stringify(data)
+  });
+  return r.ok;
 }
 
-// ─── DATA ──────────────────────────────────────────────────────────────────
-let currentView = 'matches';
-let allMatches = [];
-let allPerfis = [];
-let allLics = [];
-let activeClientFilter = null;
+async function sbPost(table,data){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/'+table,{
+    method:'POST',
+    headers:{...H,'Prefer':'return=minimal'},
+    body:JSON.stringify(data)
+  });
+  return r.ok;
+}
 
-document.getElementById('current-date').textContent =
-  new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+let allMatches=[],allPerfis=[],allLics=[],activeClientFilter=null;
+document.getElementById('current-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
 
-// ─── INIT ──────────────────────────────────────────────────────────────────
-async function init() {
-  try {
-
-    console.log('Carregando dados...');
-
-    const [matches, perfis, lics] = await Promise.all([
-      supabase(
-        'matches',
-        '?select=id,perfil_id,licitacao_id,score_calculado,notificado,status&order=score_calculado.desc&limit=200'
-      ),
-
-      supabase(
-        'perfis_empresa',
-        '?select=id,nome,uf_interesse,palavras_chave,palavras_excluir,ativo'
-      ),
-
-      supabase(
-        'licitacoes_pncp',
-        '?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao&order=id.desc&limit=200'
-      )
+async function init(){
+  try{
+    const[matches,perfis,lics]=await Promise.all([
+      sbGet('matches','?select=id,perfil_id,licitacao_id,score_calculado,notificado,status&order=score_calculado.desc&limit=300'),
+      sbGet('perfis_empresa','?select=id,nome,segmento,uf_interesse,palavras_chave,palavras_excluir,ativo'),
+      sbGet('licitacoes_pncp','?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao&order=id.desc&limit=300'),
     ]);
-
-    console.log('MATCHES:', matches);
-    console.log('PERFIS:', perfis);
-    console.log('LICS:', lics);
-
-    allMatches = Array.isArray(matches) ? matches : [];
-    allPerfis  = Array.isArray(perfis) ? perfis : [];
-    allLics    = Array.isArray(lics) ? lics : [];
-
+    allMatches=Array.isArray(matches)?matches:[];
+    allPerfis=Array.isArray(perfis)?perfis:[];
+    allLics=Array.isArray(lics)?lics:[];
     buildSidebarClients();
     showView('matches');
-
-  } catch(e) {
-
-    console.error('ERRO INIT:', e);
-
-    document.getElementById('main-content').innerHTML = `
-      <div class="empty">
-        Erro ao conectar com o Supabase.<br><br>
-        ${e.message || e}
-      </div>
-    `;
+  }catch(e){
+    document.getElementById('main-content').innerHTML='<div class="empty">Erro ao conectar.<br>'+e.message+'</div>';
   }
 }
 
-// ─── SIDEBAR CLIENTS ───────────────────────────────────────────────────────
-function buildSidebarClients() {
-  const el = document.getElementById('sidebar-clients');
-  const matchCount = (id) => allMatches.filter(m => m.perfil_id == id && m.status !== 'descartado').length;
-
-  el.innerHTML = allPerfis.map(p => `
-    <div class="client-item ${activeClientFilter == p.id ? 'active' : ''}" onclick="filterClient(${p.id})">
-      <div class="client-dot ${p.ativo ? '' : 'inactive'}"></div>
+function buildSidebarClients(){
+  const el=document.getElementById('sidebar-clients');
+  const mc=(id)=>allMatches.filter(m=>m.perfil_id==id&&m.status!=='descartado').length;
+  el.innerHTML=allPerfis.map(p=>`
+    <div class="client-item ${activeClientFilter==p.id?'active':''}" onclick="filterClient(${p.id})">
+      <div class="client-dot ${p.ativo?'':'inactive'}"></div>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.nome}</span>
-      ${matchCount(p.id) > 0 ? `<span class="badge-count">${matchCount(p.id)}</span>` : ''}
-    </div>
-  `).join('') + `
-    <div class="client-item" onclick="abrirModalCliente()" style="margin-top:8px;color:var(--gold);opacity:0.7">
+      ${mc(p.id)>0?'<span class="badge-count">'+mc(p.id)+'</span>':''}
+    </div>`).join('')+`
+    <div class="client-item" onclick="abrirModalCliente()" style="margin-top:8px;color:var(--gold);opacity:.7">
       <span>＋</span> Novo cliente
-    </div>
-  `;
+    </div>`;
 }
 
-function filterClient(id) {
-  activeClientFilter = activeClientFilter === id ? null : id;
+function filterClient(id){
+  activeClientFilter=activeClientFilter===id?null:id;
   buildSidebarClients();
-  showView('matches');
+  renderMatches();
 }
 
-// ─── VIEWS ─────────────────────────────────────────────────────────────────
-function showView(view) {
-  currentView = view;
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const idx = ['matches','licitacoes','clientes'].indexOf(view);
+function showView(view){
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const idx=['matches','licitacoes','clientes'].indexOf(view);
   document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
-
-  if (view === 'matches')     renderMatches();
-  if (view === 'licitacoes')  renderLicitacoes();
-  if (view === 'clientes')    renderClientes();
+  if(view==='matches')renderMatches();
+  if(view==='licitacoes')renderLicitacoes();
+  if(view==='clientes')renderClientes();
 }
 
-// ─── METRICS ───────────────────────────────────────────────────────────────
-function renderMetrics(matches) {
-  const total   = matches.length;
-  const altos   = matches.filter(m => m.score_calculado >= 80).length;
-  const novos   = matches.filter(m => !m.status || m.status === 'novo').length;
-  const valores = allLics.reduce((acc, l) => acc + (l.valor_estimado || 0), 0);
-  const valStr  = valores >= 1e6
-    ? `R$ ${(valores/1e6).toFixed(1)}M`
-    : valores >= 1e3 ? `R$ ${(valores/1e3).toFixed(0)}k` : `R$ ${valores}`;
-
-  return `
-  <div class="metrics">
-    <div class="metric-card">
-      <div class="metric-label">Matches hoje</div>
-      <div class="metric-value gold">${total}</div>
-      <div class="metric-sub">oportunidades</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Score alto ≥ 80</div>
-      <div class="metric-value green">${altos}</div>
-      <div class="metric-sub">prioridade alta</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Não vistos</div>
-      <div class="metric-value">${novos}</div>
-      <div class="metric-sub">aguardando análise</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Valor total</div>
-      <div class="metric-value" style="font-size:20px">${valStr}</div>
-      <div class="metric-sub">em licitações</div>
-    </div>
+function renderMetrics(matches){
+  const total=matches.length;
+  const altos=matches.filter(m=>m.score_calculado>=80).length;
+  const novos=matches.filter(m=>!m.status||m.status==='novo').length;
+  const valores=allLics.reduce((a,l)=>a+(l.valor_estimado||0),0);
+  const valStr=valores>=1e6?'R$ '+(valores/1e6).toFixed(1)+'M':valores>=1e3?'R$ '+(valores/1e3).toFixed(0)+'k':'R$ '+valores;
+  return`<div class="metrics">
+    <div class="metric-card"><div class="metric-label">Matches</div><div class="metric-value gold">${total}</div><div class="metric-sub">oportunidades</div></div>
+    <div class="metric-card"><div class="metric-label">Score ≥ 80</div><div class="metric-value green">${altos}</div><div class="metric-sub">prioridade alta</div></div>
+    <div class="metric-card"><div class="metric-label">Não vistos</div><div class="metric-value">${novos}</div><div class="metric-sub">aguardando análise</div></div>
+    <div class="metric-card"><div class="metric-label">Valor total</div><div class="metric-value" style="font-size:20px">${valStr}</div><div class="metric-sub">em licitações</div></div>
   </div>`;
 }
 
-// ─── MATCHES VIEW ──────────────────────────────────────────────────────────
-function renderMatches() {
-  let matches = [...allMatches];
-  if (activeClientFilter) matches = matches.filter(m => m.perfil_id == activeClientFilter);
-
-  const licMap  = Object.fromEntries(allLics.map(l => [l.id, l]));
-  const perfMap = Object.fromEntries(allPerfis.map(p => [p.id, p]));
-
-  const html = `
-    ${renderMetrics(matches)}
-    <div class="section-header">
-      <div>
-        <div class="section-title">Oportunidades</div>
-        <div class="section-sub">${activeClientFilter ? perfMap[activeClientFilter]?.nome : 'Todos os clientes'}</div>
+function cardMatch(m,licMap,perfMap){
+  const lic=licMap[m.licitacao_id]||{};
+  const perf=perfMap[m.perfil_id]||{};
+  const score=m.score_calculado||0;
+  const sc=score>=80?'s-high':score>=60?'s-mid':'s-low';
+  const tags=['gold','blue','green'];
+  const tc=tags[allPerfis.findIndex(p=>p.id==m.perfil_id)%3];
+  const valor=lic.valor_estimado?'R$ '+Number(lic.valor_estimado).toLocaleString('pt-BR'):'Não informado';
+  const status=m.status||'novo';
+  const stc='status-'+(status==='novo'?'novo':status==='analisando'?'analisando':status==='participando'?'participando':'descartado');
+  return`<div class="match-card ${score>=80?'priority':''}" id="mc-${m.id}">
+    <div>
+      <div class="match-client">
+        <span class="client-tag ${tc}">${perf.nome||'—'}</span>
+        <span class="status-pill ${stc}">${status}</span>
+        ${m.notificado?'<span style="font-size:10px;color:var(--text-dim)">✓ Notificado</span>':''}
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn-small" onclick="activeClientFilter=null;showView('matches')">Ver todos</button>
+      <div class="match-objeto">${(lic.objeto||'Objeto não informado').substring(0,120)}${(lic.objeto||'').length>120?'...':''}</div>
+      <div class="match-meta">
+        <span>🏛️ ${lic.orgao_nome||'—'}</span>
+        <span>📍 ${lic.uf||'—'}</span>
+        <span>💰 ${valor}</span>
       </div>
+      <div class="card-actions">
+        ${lic.link_pncp?'<a href="'+lic.link_pncp+'" target="_blank"><button class="btn-small">Ver edital</button></a>':''}
+        <button class="btn-small" onclick="mudarStatus(\'${m.id}\',\'analisando\')">Analisar</button>
+        <button class="btn-small primary" onclick="mudarStatus(\'${m.id}\',\'participando\')">Participar</button>
+        <button class="btn-small danger" onclick="mudarStatus(\'${m.id}\',\'descartado\')">Descartar</button>
+      </div>
+    </div>
+    <div class="score-ring"><div class="score-num ${sc}">${score}</div><div class="score-label">SCORE</div></div>
+  </div>`;
+}
+
+function renderMatches(){
+  let matches=[...allMatches].filter(m=>m.status!=='descartado');
+  if(activeClientFilter)matches=matches.filter(m=>m.perfil_id==activeClientFilter);
+  const licMap=Object.fromEntries(allLics.map(l=>[l.id,l]));
+  const perfMap=Object.fromEntries(allPerfis.map(p=>[p.id,p]));
+  document.getElementById('main-content').innerHTML=
+    renderMetrics(matches)+
+    `<div class="section-header">
+      <div><div class="section-title">Oportunidades</div>
+      <div class="section-sub">${activeClientFilter?perfMap[activeClientFilter]?.nome:'Todos os clientes'}</div></div>
+      <button class="btn-small" onclick="activeClientFilter=null;buildSidebarClients();renderMatches()">Ver todos</button>
     </div>
     <div class="tabs">
       <div class="tab active" onclick="filterTab('todos',this)">Todos</div>
       <div class="tab" onclick="filterTab('novos',this)">Novos</div>
       <div class="tab" onclick="filterTab('altos',this)">Score alto</div>
     </div>
-    <div id="match-list">
-      ${matches.length === 0
-        ? '<div class="empty">Nenhum match encontrado.<br>Rode o motor de matching para gerar resultados.</div>'
-        : matches.map(m => {
-            const lic  = licMap[m.licitacao_id] || {};
-            const perf = perfMap[m.perfil_id] || {};
-            const score = m.score_calculado || 0;
-            const scoreClass = score >= 80 ? 's-high' : score >= 60 ? 's-mid' : 's-low';
-            const tags = ['gold','blue','green'];
-            const tagClass = tags[allPerfis.findIndex(p=>p.id==m.perfil_id) % 3];
-            const valor = lic.valor_estimado
-              ? `R$ ${Number(lic.valor_estimado).toLocaleString('pt-BR')}`
-              : 'Valor não informado';
-            const status = m.status || 'novo';
-            const statusClass = `status-${status === 'novo' ? 'novo' : status === 'analisando' ? 'analisando' : 'participando'}`;
-            const priority = score >= 80 ? 'priority' : '';
-
-            return `
-            <div class="match-card ${priority}" id="mc-${m.id}">
-              <div>
-                <div class="match-client">
-                  <span class="client-tag ${tagClass}">${perf.nome || '—'}</span>
-                  <span class="status-pill ${statusClass}">${status}</span>
-                  ${m.status ? '<span style="font-size:10px;color:var(--text-dim)">✓ Notificado</span>' : ''}
-                </div>
-                <div class="match-objeto">
-                    ${(lic.objeto || 'Objeto não informado').substring(0,120)}
-                 ${(lic.objeto && lic.objeto.length > 120) ? '...' : ''}
-                  </div>
-                <div class="match-meta">
-                  <span>🏛️ ${lic.orgao_nome || '—'}</span>
-                  <span>📍 ${lic.uf || '—'}</span>
-                  <span>💰 ${valor}</span>
-                </div>
-                <div class="card-actions">
-                  ${lic.link_pncp ? `<a href="${lic.link_pncp}" target="_blank"><button class="btn-small">Ver edital</button></a>` : ''}
-                  <button class="btn-small" onclick="mudarStatus('${m.id}','analisando')">Analisar</button>
-                  <button class="btn-small primary" onclick="mudarStatus('${m.id}','participando')">Participar</button>
-                  <button class="btn-small" onclick="mudarStatus('${m.id}','descartado')" style="color:var(--text-dim)">Descartar</button>
-                </div>
-              </div>
-              <div class="score-ring">
-                <div class="score-num ${scoreClass}">${score}</div>
-                <div class="score-label">SCORE</div>
-              </div>
-            </div>`;
-          }).join('')
-      }
-    </div>`;
-
-  document.getElementById('main-content').innerHTML = html;
+    <div id="match-list">${
+      matches.length===0
+        ?'<div class="empty">Nenhum match encontrado.</div>'
+        :matches.map(m=>cardMatch(m,licMap,perfMap)).join('')
+    }</div>`;
 }
 
-function filterTab(tipo, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+function filterTab(tipo,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  const licMap  = Object.fromEntries(allLics.map(l => [l.id, l]));
-  const perfMap = Object.fromEntries(allPerfis.map(p => [p.id, p]));
-  let matches = [...allMatches];
-  if (activeClientFilter) matches = matches.filter(m => m.perfil_id == activeClientFilter);
-  if (tipo === 'novos') matches = matches.filter(m => !m.status || m.status === 'novo');
-  if (tipo === 'altos') matches = matches.filter(m => m.score_calculado >= 80);
+  let matches=[...allMatches].filter(m=>m.status!=='descartado');
+  if(activeClientFilter)matches=matches.filter(m=>m.perfil_id==activeClientFilter);
+  if(tipo==='novos')matches=matches.filter(m=>!m.status||m.status==='novo');
+  if(tipo==='altos')matches=matches.filter(m=>m.score_calculado>=80);
+  const licMap=Object.fromEntries(allLics.map(l=>[l.id,l]));
+  const perfMap=Object.fromEntries(allPerfis.map(p=>[p.id,p]));
+  const lista=document.getElementById('match-list');
+  if(lista)lista.innerHTML=matches.map(m=>cardMatch(m,licMap,perfMap)).join('')||'<div class="empty">Nenhum match neste filtro.</div>';
+}
 
-  // re-render só a lista
-  const lista = document.getElementById('match-list');
-  if (lista) lista.innerHTML = matches.map(m => {
-    const lic  = licMap[m.licitacao_id] || {};
-    const perf = perfMap[m.perfil_id] || {};
-    const score = m.score_calculado || 0;
-    const scoreClass = score >= 80 ? 's-high' : score >= 60 ? 's-mid' : 's-low';
-    const tags = ['gold','blue','green'];
-    const tagClass = tags[allPerfis.findIndex(p=>p.id==m.perfil_id) % 3];
-    const valor = lic.valor_estimado ? `R$ ${Number(lic.valor_estimado).toLocaleString('pt-BR')}` : 'Valor não informado';
-    const status = m.status || 'novo';
-    const statusClass = `status-${status === 'novo' ? 'novo' : status === 'analisando' ? 'analisando' : 'participando'}`;
-    const priority = score >= 80 ? 'priority' : '';
-    return `
-    <div class="match-card ${priority}" id="mc-${m.id}">
+function renderLicitacoes(){
+  document.getElementById('main-content').innerHTML=
+    `<div class="section-header"><div><div class="section-title">Licitações Coletadas</div>
+    <div class="section-sub">${allLics.length} registros</div></div></div>`+
+    allLics.slice(0,50).map(l=>`
+    <div class="match-card">
       <div>
-        <div class="match-client">
-          <span class="client-tag ${tagClass}">${perf.nome || '—'}</span>
-          <span class="status-pill ${statusClass}">${status}</span>
-        </div>
-        <div class="match-objeto">${(lic.objeto || '').substring(0,120)}...</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">${l.uf||'?'} · ${l.data_publicacao||'—'}</div>
+        <div class="match-objeto">${(l.objeto||'').substring(0,120)}...</div>
         <div class="match-meta">
-          <span>🏛️ ${lic.orgao_nome || '—'}</span>
-          <span>📍 ${lic.uf || '—'}</span>
-          <span>💰 ${valor}</span>
+          <span>🏛️ ${l.orgao_nome||'—'}</span>
+          <span>💰 ${l.valor_estimado?'R$ '+Number(l.valor_estimado).toLocaleString('pt-BR'):'Não informado'}</span>
         </div>
         <div class="card-actions">
-          ${lic.link_pncp ? `<a href="${lic.link_pncp}" target="_blank"><button class="btn-small">Ver edital</button></a>` : ''}
-          <button class="btn-small" onclick="mudarStatus('${m.id}','analisando')">Analisar</button>
-          <button class="btn-small primary" onclick="mudarStatus('${m.id}','participando')">Participar</button>
+          ${l.link_pncp?'<a href="'+l.link_pncp+'" target="_blank"><button class="btn-small">Ver edital</button></a>':''}
         </div>
       </div>
-      <div class="score-ring">
-        <div class="score-num ${scoreClass}">${score}</div>
-        <div class="score-label">SCORE</div>
-      </div>
-    </div>`;
-  }).join('') || '<div class="empty">Nenhum match neste filtro.</div>';
+      <div></div>
+    </div>`).join('');
 }
 
-// ─── LICITAÇÕES VIEW ───────────────────────────────────────────────────────
-function renderLicitacoes() {
-  const html = `
-    <div class="section-header">
-      <div><div class="section-title">Licitações Coletadas</div><div class="section-sub">${allLics.length} registros no banco</div></div>
-    </div>
-    ${allLics.slice(0,30).map(l => `
-      <div class="match-card">
-        <div>
-          <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">${l.uf || '?'} · ${l.data_publicacao || '—'}</div>
-          <div class="match-objeto">${(l.objeto || '').substring(0,120)}...</div>
-          <div class="match-meta">
-            <span>🏛️ ${l.orgao_nome || '—'}</span>
-            <span>💰 ${l.valor_estimado ? 'R$ '+Number(l.valor_estimado).toLocaleString('pt-BR') : 'Não informado'}</span>
-          </div>
-          <div class="card-actions">
-            ${l.link_pncp ? `<a href="${l.link_pncp}" target="_blank"><button class="btn-small">Ver edital</button></a>` : ''}
-          </div>
-        </div>
-        <div class="score-ring" style="min-width:40px"></div>
-      </div>`).join('')}`;
-  document.getElementById('main-content').innerHTML = html;
-}
-
-// ─── CLIENTES VIEW ─────────────────────────────────────────────────────────
-function renderClientes() {
-  const matchCount = (id) => allMatches.filter(m => m.perfil_id == id).length;
-  const html = `
-    <div class="section-header">
+function renderClientes(){
+  const mc=(id)=>allMatches.filter(m=>m.perfil_id==id).length;
+  document.getElementById('main-content').innerHTML=
+    `<div class="section-header">
       <div><div class="section-title">Clientes</div><div class="section-sub">${allPerfis.length} perfis cadastrados</div></div>
       <button class="btn-small primary" onclick="abrirModalCliente()">+ Novo cliente</button>
-    </div>
-    ${allPerfis.map(p => `
-      <div class="match-card">
-        <div>
-          <div class="match-client">
-            <span class="client-tag gold">${p.segmento ? p.segmento : 'Sem segmento'}</span>
-            <div class="client-dot ${p.ativo ? '' : 'inactive'}" style="margin-left:4px"></div>
-            <span style="font-size:11px;color:var(--text-dim)">${p.ativo ? 'Ativo' : 'Inativo'}</span>
-          </div>
-          <div class="match-objeto">${p.nome}</div>
-          <div class="match-meta">
-            <span>📍 ${(p.uf_interesse || []).join(', ')}</span>
-            <span>🔑 ${(p.palavras_chave || []).length} palavras-chave</span>
-            <span>🚫 ${(p.palavras_excluir || []).length} exclusões</span>
-            <span>📊 ${matchCount(p.id)} matches</span>
-          </div>
+    </div>`+
+    allPerfis.map(p=>`
+    <div class="match-card">
+      <div>
+        <div class="match-client">
+          <span class="client-tag gold">${p.segmento||'Sem segmento'}</span>
+          <div class="client-dot ${p.ativo?'':'inactive'}" style="margin-left:4px"></div>
+          <span style="font-size:11px;color:var(--text-dim)">${p.ativo?'Ativo':'Inativo'}</span>
         </div>
-        <div style="font-size:24px;font-weight:700;color:var(--gold);font-family:'Syne',sans-serif">${matchCount(p.id)}</div>
-      </div>`).join('')}`;
-  document.getElementById('main-content').innerHTML = html;
+        <div class="match-objeto">${p.nome}</div>
+        <div class="match-meta">
+          <span>📍 ${(p.uf_interesse||[]).join(', ')}</span>
+          <span>🔑 ${(p.palavras_chave||[]).length} palavras</span>
+          <span>🚫 ${(p.palavras_excluir||[]).length} exclusões</span>
+          <span>📊 ${mc(p.id)} matches</span>
+        </div>
+      </div>
+      <div style="font-size:24px;font-weight:700;color:var(--gold);font-family:'Syne',sans-serif">${mc(p.id)}</div>
+    </div>`).join('');
 }
 
-// ─── AÇÕES ─────────────────────────────────────────────────────────────────
-async function mudarStatus(matchId, novoStatus) {
-  const ok = await supabasePatch('matches', matchId, { status: novoStatus });
-  if (ok) {
-    const m = allMatches.find(m => m.id == matchId);
-    if (m) m.status = novoStatus;
-    showToast(`Status atualizado: ${novoStatus}`);
+async function mudarStatus(matchId,novoStatus){
+  const ok=await sbPatch('matches',matchId,{status:novoStatus});
+  if(ok){
+    const m=allMatches.find(m=>m.id==matchId);
+    if(m)m.status=novoStatus;
+    showToast('Status atualizado: '+novoStatus);
     renderMatches();
+  }else{
+    showToast('Erro ao atualizar. Verifique permissões.');
   }
 }
 
-function dispararAlertas() {
-  showToast('⚡ Para disparar alertas manualmente, rode: python alertas_telegram.py');
+function dispararAlertas(){showToast('⚡ Rode: python scripts/alertas_telegram.py')}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
 }
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3500);
+function abrirModalCliente(){document.getElementById('modal-cliente').classList.add('open')}
+function fecharModal(){document.getElementById('modal-cliente').classList.remove('open')}
+
+async function salvarCliente(){
+  const nome=document.getElementById('f-nome').value.trim();
+  const segmento=document.getElementById('f-segmento').value.trim();
+  const palavras=document.getElementById('f-palavras').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const ufs=document.getElementById('f-ufs').value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+  const excluir=document.getElementById('f-excluir').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!nome){showToast('⚠️ Nome é obrigatório');return}
+  const ok=await sbPost('perfis_empresa',{nome,segmento,palavras_chave:palavras,uf_interesse:ufs,palavras_excluir:excluir,ativo:true,score_minimo:60});
+  if(ok){fecharModal();showToast('✅ Cliente cadastrado!');setTimeout(()=>init(),500)}
+  else showToast('❌ Erro ao salvar.');
 }
 
-function abrirModalCliente() {
-  document.getElementById('modal-cliente').classList.add('open');
-}
-function fecharModal() {
-  document.getElementById('modal-cliente').classList.remove('open');
-}
-
-async function salvarCliente() {
-  const nome     = document.getElementById('f-nome').value.trim();
-  const segmento = document.getElementById('f-segmento').value.trim();
-  const palavras = document.getElementById('f-palavras').value.split(',').map(s=>s.trim()).filter(Boolean);
-  const ufs      = document.getElementById('f-ufs').value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
-  const excluir  = document.getElementById('f-excluir').value.split(',').map(s=>s.trim()).filter(Boolean);
-
-  if (!nome) { showToast('⚠️ Nome é obrigatório'); return; }
-
-  const ok = await supabasePost('perfis_empresa', {
-    nome, segmento,
-    palavras_chave: palavras,
-    uf_interesse: ufs,
-    palavras_excluir: excluir,
-    ativo: true,
-    score_minimo: 60,
-  });
-
-  if (ok) {
-    fecharModal();
-    showToast('✅ Cliente cadastrado com sucesso!');
-    setTimeout(() => init(), 500);
-  } else {
-    showToast('❌ Erro ao salvar. Verifique as permissões do Supabase.');
-  }
-}
-
-// ─── START ─────────────────────────────────────────────────────────────────
 init();
 </script>
 </body>
