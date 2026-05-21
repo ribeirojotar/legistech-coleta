@@ -1,8 +1,20 @@
 """
-LegisTech Intelligence — Alertas via Telegram
+LegisTech Intelligence — Alertas Telegram com Botões Interativos
+
+Fluxo:
+1. Bot envia oportunidades com botões [Participar] [Dispensar] [Ver edital]
+2. Cliente clica no botão
+3. Sistema atualiza o status no Supabase automaticamente
+4. Dashboard reflete a escolha em tempo real
+
+Uso:
+  python alertas_telegram.py          # envia alertas pendentes
+  python alertas_telegram.py --listen # fica escutando respostas (modo webhook)
+  python alertas_telegram.py --simular
 """
 
 import os
+import time
 import argparse
 import logging
 from datetime import datetime
@@ -15,12 +27,12 @@ load_dotenv(find_dotenv(), override=True)
 
 SUPABASE_URL  = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY  = os.environ.get("SUPABASE_KEY")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+TELEGRAM_API  = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
-TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "")
-TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+SCORE_MINIMO  = 65
 
-SCORE_MINIMO_ALERTA = 65
-
+# Chat IDs — todos apontam para você por enquanto
 CHAT_IDS_CLIENTES = {
     "Engenharia Total":                      "804078121",
     "Gráfica & Brindes":                     "804078121",
@@ -28,8 +40,6 @@ CHAT_IDS_CLIENTES = {
     "C K M Distribuidora":                   "804078121",
     "GF INFRAESTRUTURA E PAVIMENTACAO LTDA": "804078121",
 }
-
-SEU_CHAT_ID = "804078121"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,83 +52,73 @@ log = logging.getLogger("legistech.telegram")
 def escape_md(texto: str) -> str:
     if not texto:
         return ""
-    caracteres = r'_*[]()~`>#+-=|{}.!'
-    for c in caracteres:
+    for c in r'_*[]()~`>#+-=|{}.!':
         texto = texto.replace(c, f'\\{c}')
     return texto
 
 
-def formatar_mensagem(cliente: str, matches: list) -> str:
-    hoje  = datetime.now().strftime("%d/%m/%Y")
-    total = len(matches)
+def enviar_oportunidade(chat_id: str, match: dict, lic: dict, perf: dict) -> bool:
+    """Envia uma oportunidade individual com botões inline."""
+    score  = match.get("score_calculado", 0)
+    objeto = (lic.get("objeto") or "")[:150]
+    orgao  = lic.get("orgao_nome") or "Órgão não informado"
+    uf     = lic.get("uf") or ""
+    valor  = lic.get("valor_estimado")
+    link   = lic.get("link_pncp") or ""
+    match_id = match.get("id")
 
-    linhas = [
-        f"🏆 *LegisTech — Oportunidades de {escape_md(hoje)}*",
-        f"Encontrei *{total} licitação\\(ões\\)* para {escape_md(cliente)}:",
-        "",
-    ]
+    emoji = "🔥" if score >= 85 else "✅" if score >= 70 else "🔎"
 
-    for i, m in enumerate(matches, 1):
-        lic    = m.get("licitacao", {})
-        score  = m.get("score_calculado", 0)
-        objeto = (lic.get("objeto") or "")[:100]
-        orgao  = lic.get("orgao_nome") or "Órgão não informado"
-        uf     = lic.get("uf") or ""
-        valor  = lic.get("valor_estimado")
-        link   = lic.get("link_pncp") or ""
-        resumo = lic.get("resumo_ia") or ""
+    valor_fmt = (
+        f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        if valor else "Valor não informado"
+    )
 
-        emoji = "🔥" if score >= 85 else "✅" if score >= 70 else "🔎"
+    texto = (
+        f"🏆 *LegisTech — Nova Oportunidade*\n"
+        f"Cliente: *{escape_md(perf.get('nome', ''))}*\n\n"
+        f"{emoji} *Score: {score}/100*\n\n"
+        f"📋 {escape_md(objeto)}{'...' if len(objeto)==150 else ''}\n\n"
+        f"🏛️ {escape_md(orgao)} \\({uf}\\)\n"
+        f"💰 {escape_md(valor_fmt)}\n\n"
+        f"_Clique abaixo para registrar sua decisão:_"
+    )
 
-        valor_fmt = (
-            f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            if valor else "Valor não informado"
-        )
-
-        linhas += [
-            f"*{i}\\. {emoji} Score: {score}/100*",
-            f"📋 {escape_md(objeto)}",
-            f"🏛️ {escape_md(orgao)} \\({uf}\\)",
-            f"💰 {escape_md(valor_fmt)}",
+    # Botões inline — callback_data codifica a ação e o ID do match
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "✅ Participar",  "callback_data": f"participar:{match_id}"},
+                {"text": "❌ Dispensar",  "callback_data": f"dispensar:{match_id}"},
+            ],
         ]
+    }
 
-        if resumo:
-            linhas.append(f"💡 _{escape_md(resumo[:120])}_")
+    # Adiciona botão Ver edital se tiver link
+    if link:
+        keyboard["inline_keyboard"].append([
+            {"text": "🔗 Ver edital", "url": link}
+        ])
 
-        if link:
-            linhas.append(f"🔗 [Ver edital]({link})")
-
-        linhas.append("")
-
-    linhas += [
-        "─────────────────────",
-        "⚠️ _Verifique os prazos com antecedência\\._",
-        "_Dúvidas? Fale com sua assessoria LegisTech\\._",
-    ]
-
-    return "\n".join(linhas)
-
-
-def enviar_telegram(chat_id: str, mensagem: str) -> bool:
     try:
         resp = requests.post(
-            f"{TELEGRAM_API_URL}/sendMessage",
+            f"{TELEGRAM_API}/sendMessage",
             json={
                 "chat_id":    chat_id,
-                "text":       mensagem,
+                "text":       texto,
                 "parse_mode": "MarkdownV2",
+                "reply_markup": keyboard,
                 "disable_web_page_preview": True,
             },
             timeout=15,
         )
         if resp.status_code == 200:
-            log.info(f"  Telegram enviado para chat_id {chat_id}")
             return True
         else:
             log.error(f"  Erro Telegram {resp.status_code}: {resp.text[:200]}")
             return False
     except Exception as e:
-        log.error(f"  Erro de conexão Telegram: {e}")
+        log.error(f"  Erro conexão: {e}")
         return False
 
 
@@ -154,21 +154,90 @@ def buscar_matches_pendentes(supabase: Client, score_minimo: int) -> list:
     return matches
 
 
-def agrupar_por_cliente(matches: list) -> dict:
-    grupos = {}
-    for m in matches:
-        nome = m.get("perfil", {}).get("nome", "Desconhecido")
-        grupos.setdefault(nome, []).append(m)
-    return grupos
+def processar_callbacks(supabase: Client):
+    """
+    Fica em loop processando respostas dos botões.
+    Roda por 5 minutos depois do envio dos alertas.
+    """
+    log.info("Aguardando respostas dos botões (5 minutos)...")
+    offset = 0
+    fim = time.time() + 300  # 5 minutos
+
+    while time.time() < fim:
+        try:
+            resp = requests.get(
+                f"{TELEGRAM_API}/getUpdates",
+                params={"offset": offset, "timeout": 10, "allowed_updates": ["callback_query"]},
+                timeout=15,
+            )
+            data = resp.json()
+
+            for update in data.get("result", []):
+                offset = update["update_id"] + 1
+
+                callback = update.get("callback_query")
+                if not callback:
+                    continue
+
+                callback_id   = callback["id"]
+                callback_data = callback.get("data", "")
+                chat_id       = callback["message"]["chat"]["id"]
+
+                if ":" not in callback_data:
+                    continue
+
+                acao, match_id = callback_data.split(":", 1)
+
+                if acao == "participar":
+                    novo_status = "participando"
+                    resposta    = "✅ Registrado! Boa sorte na licitação!"
+                elif acao == "dispensar":
+                    novo_status = "descartado"
+                    resposta    = "❌ Oportunidade dispensada."
+                else:
+                    continue
+
+                # Atualiza no Supabase
+                supabase.table("matches").update({
+                    "status": novo_status
+                }).eq("id", int(match_id)).execute()
+
+                # Confirma para o usuário no Telegram
+                requests.post(f"{TELEGRAM_API}/answerCallbackQuery", json={
+                    "callback_query_id": callback_id,
+                    "text": resposta,
+                    "show_alert": False,
+                }, timeout=10)
+
+                # Edita a mensagem para remover os botões
+                requests.post(f"{TELEGRAM_API}/editMessageReplyMarkup", json={
+                    "chat_id":    chat_id,
+                    "message_id": callback["message"]["message_id"],
+                    "reply_markup": {"inline_keyboard": []},
+                }, timeout=10)
+
+                log.info(f"  Match {match_id} → {novo_status}")
+
+        except Exception as e:
+            log.warning(f"  Erro ao processar callback: {e}")
+            time.sleep(2)
+
+    log.info("Processamento de callbacks encerrado.")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="LegisTech — Alertas Telegram")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--simular", action="store_true")
-    parser.add_argument("--score",   type=int, default=SCORE_MINIMO_ALERTA)
+    parser.add_argument("--score",   type=int, default=SCORE_MINIMO)
+    parser.add_argument("--listen",  action="store_true", help="Só processar callbacks")
     args = parser.parse_args()
 
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    # Modo só escutar respostas
+    if args.listen:
+        processar_callbacks(supabase)
+        return
 
     log.info(f"Buscando matches com score >= {args.score}...")
     matches = buscar_matches_pendentes(supabase, args.score)
@@ -178,7 +247,12 @@ def main():
         log.info("Nenhum alerta para enviar.")
         return
 
-    grupos = agrupar_por_cliente(matches)
+    # Agrupar por cliente
+    grupos: dict = {}
+    for m in matches:
+        nome = m.get("perfil", {}).get("nome", "Desconhecido")
+        grupos.setdefault(nome, []).append(m)
+
     ids_notificados = []
 
     for cliente, matches_cliente in grupos.items():
@@ -187,26 +261,45 @@ def main():
             log.warning(f"  Chat ID não configurado para '{cliente}'. Pulando.")
             continue
 
-        matches_top = matches_cliente[:5]
-        mensagem = formatar_mensagem(cliente, matches_top)
+        log.info(f"Enviando {len(matches_cliente)} oportunidade(s) para {cliente}...")
 
-        if args.simular:
-            print(f"\n{'='*50}")
-            print(f"SIMULAÇÃO — {cliente} (chat_id: {chat_id})")
-            print(f"{'='*50}")
-            print(mensagem)
-            ids_notificados.extend(m["id"] for m in matches_cliente)
-        else:
-            log.info(f"Enviando para {cliente}...")
-            ok = enviar_telegram(chat_id, mensagem)
-            if ok:
-                ids_notificados.extend(m["id"] for m in matches_cliente)
+        # Envia as top 5 oportunidades individualmente (uma por mensagem com botões)
+        enviados = 0
+        for m in matches_cliente[:5]:
+            if args.simular:
+                lic  = m.get("licitacao", {})
+                perf = m.get("perfil", {})
+                print(f"\n{'='*50}")
+                print(f"SIMULAÇÃO — {cliente}")
+                print(f"Match ID: {m['id']} | Score: {m['score_calculado']}")
+                print(f"Objeto: {(lic.get('objeto') or '')[:80]}")
+                print(f"Botões: [✅ Participar] [❌ Dispensar] [🔗 Ver edital]")
+                enviados += 1
+            else:
+                ok = enviar_oportunidade(
+                    chat_id,
+                    m,
+                    m.get("licitacao", {}),
+                    m.get("perfil", {})
+                )
+                if ok:
+                    enviados += 1
+                time.sleep(0.5)  # pequena pausa entre mensagens
 
+        if enviados > 0:
+            ids_notificados.extend(m["id"] for m in matches_cliente[:5])
+            log.info(f"  {enviados} oportunidade(s) enviada(s) para {cliente}.")
+
+    # Marcar como notificado
     if ids_notificados and not args.simular:
         supabase.table("matches").update({
             "notificado": True,
         }).in_("id", ids_notificados).execute()
         log.info(f"{len(ids_notificados)} match(es) marcado(s) como notificado.")
+
+    # Processar respostas dos botões por 5 minutos
+    if not args.simular and ids_notificados:
+        processar_callbacks(supabase)
 
     log.info("Concluído.")
 
