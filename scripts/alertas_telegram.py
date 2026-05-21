@@ -59,13 +59,14 @@ def escape_md(texto: str) -> str:
 
 def enviar_oportunidade(chat_id: str, match: dict, lic: dict, perf: dict) -> bool:
     """Envia uma oportunidade individual com botões inline."""
-    score  = match.get("score_calculado", 0)
-    objeto = (lic.get("objeto") or "")[:150]
-    orgao  = lic.get("orgao_nome") or "Órgão não informado"
-    uf     = lic.get("uf") or ""
-    valor  = lic.get("valor_estimado")
-    link   = lic.get("link_pncp") or ""
+    score    = match.get("score_calculado", 0)
+    objeto   = (lic.get("objeto") or "")[:150]
+    orgao    = lic.get("orgao_nome") or "Órgão não informado"
+    uf       = lic.get("uf") or ""
+    valor    = lic.get("valor_estimado")
+    link     = lic.get("link_pncp") or ""
     match_id = match.get("id")
+    cliente  = perf.get("nome", "")
 
     emoji = "🔥" if score >= 85 else "✅" if score >= 70 else "🔎"
 
@@ -74,14 +75,15 @@ def enviar_oportunidade(chat_id: str, match: dict, lic: dict, perf: dict) -> boo
         if valor else "Valor não informado"
     )
 
+    # Usar HTML em vez de MarkdownV2 — muito mais simples e sem problemas de escape
     texto = (
-        f"🏆 *LegisTech — Nova Oportunidade*\n"
-        f"Cliente: *{escape_md(perf.get('nome', ''))}*\n\n"
-        f"{emoji} *Score: {score}/100*\n\n"
-        f"📋 {escape_md(objeto)}{'...' if len(objeto)==150 else ''}\n\n"
-        f"🏛️ {escape_md(orgao)} \\({uf}\\)\n"
-        f"💰 {escape_md(valor_fmt)}\n\n"
-        f"_Clique abaixo para registrar sua decisão:_"
+        f"🏆 <b>LegisTech — Nova Oportunidade</b>\n"
+        f"Cliente: <b>{cliente}</b>\n\n"
+        f"{emoji} <b>Score: {score}/100</b>\n\n"
+        f"📋 {objeto}{'...' if len(objeto)==150 else ''}\n\n"
+        f"🏛️ {orgao} ({uf})\n"
+        f"💰 {valor_fmt}\n\n"
+        f"<i>Clique abaixo para registrar sua decisão:</i>"
     )
 
     # Botões inline — callback_data codifica a ação e o ID do match
@@ -106,7 +108,7 @@ def enviar_oportunidade(chat_id: str, match: dict, lic: dict, perf: dict) -> boo
             json={
                 "chat_id":    chat_id,
                 "text":       texto,
-                "parse_mode": "MarkdownV2",
+                "parse_mode": "HTML",
                 "reply_markup": keyboard,
                 "disable_web_page_preview": True,
             },
