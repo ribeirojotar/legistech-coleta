@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LegisTech — Painel do Assessor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0B1628;--navy-mid:#152035;--navy-light:#1E2F47;--gold:#C9A84C;--gold-light:#E8C96A;--gold-dim:rgba(201,168,76,0.15);--cream:#F5F0E8;--text-dim:rgba(245,240,232,0.5);--text-mid:rgba(245,240,232,0.75);--green:#2ECC8F;--red:#E05555;--blue:#4A9EF5;--border:rgba(201,168,76,0.2)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--cream);min-height:100vh;overflow-x:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:var(--navy-mid);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px;color:var(--cream)}
+.logo span{color:var(--gold)}
+.topbar-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.date-badge{font-size:12px;color:var(--text-dim);font-weight:300}
+.btn-alert{background:var(--gold);color:var(--navy);border:none;border-radius:6px;padding:8px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.5px;transition:all .2s}
+.btn-alert:hover{background:var(--gold-light);transform:translateY(-1px)}
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 57px)}
+.sidebar{background:var(--navy-mid);border-right:1px solid var(--border);padding:24px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;color:var(--text-mid);cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.nav-item:hover{background:var(--gold-dim);color:var(--cream)}
+.nav-item.active{border-left-color:var(--gold);background:var(--gold-dim);color:var(--gold);font-weight:500}
+.nav-divider{height:1px;background:var(--border);margin:16px 20px}
+.client-item{display:flex;align-items:center;gap:10px;padding:8px 20px;font-size:12px;color:var(--text-mid);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+.client-item:hover{background:var(--gold-dim);color:var(--cream)}
+.client-item.active{border-left-color:var(--gold);color:var(--gold)}
+.client-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.client-dot.inactive{background:var(--text-dim)}
+.badge-count{margin-left:auto;background:var(--gold-dim);color:var(--gold);font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px}
+.main{padding:28px;overflow-y:auto}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.metric-card{background:var(--navy-light);border:1px solid var(--border);border-radius:10px;padding:18px 20px;transition:border-color .2s}
+.metric-card:hover{border-color:var(--gold)}
+.metric-label{font-size:11px;color:var(--text-dim);letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase}
+.metric-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--cream);line-height:1;margin-bottom:4px}
+.metric-value.gold{color:var(--gold)}.metric-value.green{color:var(--green)}
+.metric-sub{font-size:11px;color:var(--text-dim)}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.section-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.3px}
+.section-sub{font-size:12px;color:var(--text-dim)}
+.filters-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.tabs{display:flex;gap:4px;background:var(--navy-light);border-radius:8px;padding:4px;width:fit-content}
+.tab{padding:6px 16px;font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;color:var(--text-dim);transition:all .15s}
+.tab.active{background:var(--gold);color:var(--navy);font-weight:700}
+.tab:hover:not(.active){color:var(--cream)}
+.date-filter{background:var(--navy-light);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--cream);font-family:'DM Sans',sans-serif;cursor:pointer;outline:none}
+.date-filter:focus{border-color:var(--gold)}
+.match-card{background:var(--navy-light);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;transition:all .15s}
+.match-card:hover{border-color:rgba(201,168,76,.5);transform:translateX(2px)}
+.match-card.priority{border-left:3px solid var(--gold)}
+.match-client{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.client-tag{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:2px 8px;border-radius:4px;background:var(--gold-dim);color:var(--gold)}
+.client-tag.blue{background:rgba(74,158,245,.15);color:var(--blue)}
+.client-tag.green{background:rgba(46,204,143,.15);color:var(--green)}
+.match-objeto{font-size:14px;font-weight:500;color:var(--cream);margin-bottom:6px;line-height:1.4}
+.match-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--text-dim)}
+.score-ring{display:flex;flex-direction:column;align-items:center;min-width:56px}
+.score-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;line-height:1}
+.score-num.s-high{color:var(--green)}.score-num.s-mid{color:var(--gold)}.score-num.s-low{color:var(--text-dim)}
+.score-label{font-size:9px;color:var(--text-dim);letter-spacing:.5px;margin-top:2px}
+.status-pill{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.3px}
+.status-novo{background:rgba(74,158,245,.15);color:var(--blue)}
+.status-analisando{background:rgba(201,168,76,.15);color:var(--gold)}
+.status-participando{background:rgba(46,204,143,.15);color:var(--green)}
+.status-descartado{background:rgba(224,85,85,.15);color:var(--red)}
+.btn-small{font-size:11px;font-weight:600;padding:5px 12px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text-mid);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-small:hover{border-color:var(--gold);color:var(--gold)}
+.btn-small.primary{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:700}
+.btn-small.primary:hover{background:var(--gold-light)}
+.btn-small.danger{border-color:rgba(224,85,85,.4);color:var(--red)}
+.btn-small.danger:hover{border-color:var(--red);background:rgba(224,85,85,.1)}
+.btn-small.edit{border-color:rgba(74,158,245,.4);color:var(--blue)}
+.btn-small.edit:hover{border-color:var(--blue);background:rgba(74,158,245,.1)}
+.card-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.empty{text-align:center;padding:48px;color:var(--text-dim);font-size:13px}
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;gap:12px;color:var(--text-dim);font-size:13px}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* MOBILE */
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
+.hamburger span{width:22px;height:2px;background:var(--cream);border-radius:2px;transition:all .2s}
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{display:none;position:fixed;top:57px;left:0;width:260px;height:calc(100vh - 57px);z-index:90;overflow-y:auto}
+  .sidebar.open{display:block}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .main{padding:16px}
+  .topbar{padding:12px 16px}
+  .hamburger{display:flex}
+  .logo{font-size:16px}
+}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy-light);border:1px solid var(--gold);border-radius:8px;padding:12px 20px;font-size:13px;color:var(--cream);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,22,40,.85);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--navy-mid);border:1px solid var(--border);border-radius:14px;padding:28px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:20px;color:var(--cream)}
+.modal-field{margin-bottom:14px}
+.modal-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.modal-input{width:100%;background:var(--navy-light);border:1px solid var(--border);border-radius:6px;padding:9px 12px;font-size:13px;color:var(--cream);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+.modal-input:focus{border-color:var(--gold)}
+.modal-textarea{width:100%;background:var(--navy-light);border:1px solid var(--border);border-radius:6px;padding:9px 12px;font-size:12px;color:var(--cream);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s;resize:vertical;min-height:80px;line-height:1.5}
+.modal-textarea:focus{border-color:var(--gold)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+.modal-hint{font-size:11px;color:var(--text-dim);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></div>
+    <div class="logo">Legis<span>Tech</span> <span style="font-size:12px;font-weight:400;color:var(--text-dim);margin-left:4px">Painel do Assessor</span></div>
+  </div>
+  <div class="topbar-right">
+    <span class="date-badge" id="current-date"></span>
+    <button class="btn-alert" onclick="dispararAlertas()">⚡ Alertas</button>
+  </div>
+</div>
+<div class="layout">
+  <div class="sidebar" id="sidebar">
+    <div style="padding:0 16px 12px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase">Menu</div>
+    <div class="nav-item active" onclick="showView('matches');closeSidebar()"><span>📊</span> Oportunidades</div>
+    <div class="nav-item" onclick="showView('licitacoes');closeSidebar()"><span>📋</span> Licitações</div>
+    <div class="nav-item" onclick="showView('clientes');closeSidebar()"><span>🏢</span> Clientes</div>
+    <div class="nav-divider"></div>
+    <div style="padding:0 16px 8px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase">Clientes</div>
+    <div id="sidebar-clients"></div>
+  </div>
+  <div class="main" id="main-content">
+    <div class="loading"><div class="spinner"></div> Carregando...</div>
+  </div>
+</div>
+
+<!-- MODAL CLIENTE (criar e editar) -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-title" id="modal-titulo">Novo Cliente</div>
+    <input type="hidden" id="f-id">
+    <div class="modal-field">
+      <div class="modal-label">Nome da empresa</div>
+      <input class="modal-input" id="f-nome" placeholder="Ex: Construtora ABC Ltda">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Segmento</div>
+      <input class="modal-input" id="f-segmento" placeholder="Ex: Construção Civil">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">UFs de interesse (separadas por vírgula)</div>
+      <input class="modal-input" id="f-ufs" placeholder="Ex: PI, MA, CE">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Palavras-chave (uma por linha ou separadas por vírgula)</div>
+      <textarea class="modal-textarea" id="f-palavras" placeholder="pavimentação&#10;obra&#10;construção"></textarea>
+      <div class="modal-hint">Cada palavra/frase que deve aparecer no objeto da licitação</div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Palavras a excluir (uma por linha ou separadas por vírgula)</div>
+      <textarea class="modal-textarea" id="f-excluir" placeholder="fornecimento de material&#10;aquisição de equipamento"></textarea>
+      <div class="modal-hint">Se qualquer uma dessas aparecer no objeto, a licitação é ignorada</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-small" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-small danger" id="btn-excluir-cliente" style="display:none" onclick="excluirCliente()">Excluir cliente</button>
+      <button class="btn-small primary" onclick="salvarCliente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUSÃO -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Confirmar exclusão</div>
+    <p style="color:var(--text-mid);font-size:13px;margin-bottom:20px">Tem certeza que deseja excluir este cliente? Todos os matches dele também serão removidos.</p>
+    <div class="modal-actions">
+      <button class="btn-small" onclick="fecharConfirm()">Cancelar</button>
+      <button class="btn-small danger" onclick="confirmarExclusao()">Sim, excluir</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://ojrowbvwnraqdikrvnlv.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qcm93YnZ3bnJhcWRpa3J2bmx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTE0MzcsImV4cCI6MjA5MzQyNzQzN30.YefvG7spS8lyOHaylTzUmByJhGuc9A-lsWKLc3KcqIA';
+const H={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};
+
+async function sbGet(t,q=''){const r=await fetch(SUPABASE_URL+'/rest/v1/'+t+q,{headers:H});if(!r.ok)return[];return r.json()}
+async function sbPatch(t,id,d){const r=await fetch(SUPABASE_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(d)});return r.ok}
+async function sbPost(t,d){const r=await fetch(SUPABASE_URL+'/rest/v1/'+t,{method:'POST',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(d)});return r.ok}
+async function sbDelete(t,id){const r=await fetch(SUPABASE_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:H});return r.ok}
+
+let allMatches=[],allPerfis=[],allLics=[],activeClientFilter=null,dateFilter='',clienteParaExcluir=null;
+document.getElementById('current-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+
+async function init(){
+  try{
+    const[m,p,l]=await Promise.all([
+      sbGet('matches','?select=id,perfil_id,licitacao_id,score_calculado,notificado,status,data_match&order=score_calculado.desc&limit=500'),
+      sbGet('perfis_empresa','?select=id,nome,segmento,uf_interesse,palavras_chave,palavras_excluir,ativo&order=nome'),
+      sbGet('licitacoes_pncp','?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao&order=data_publicacao.desc&limit=500'),
+    ]);
+    allMatches=Array.isArray(m)?m:[];
+    allPerfis=Array.isArray(p)?p:[];
+    allLics=Array.isArray(l)?l:[];
+    buildSidebarClients();
+    showView('matches');
+  }catch(e){
+    document.getElementById('main-content').innerHTML='<div class="empty">Erro ao conectar.<br>'+e.message+'</div>';
+  }
+}
+
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open')}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open')}
+
+function buildSidebarClients(){
+  const el=document.getElementById('sidebar-clients');
+  const mc=(id)=>allMatches.filter(m=>m.perfil_id==id&&m.status!=='descartado').length;
+  el.innerHTML=allPerfis.map(p=>`
+    <div class="client-item ${activeClientFilter==p.id?'active':''}" onclick="filterClient(${p.id});closeSidebar()">
+      <div class="client-dot ${p.ativo?'':'inactive'}"></div>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.nome}</span>
+      ${mc(p.id)>0?'<span class="badge-count">'+mc(p.id)+'</span>':''}
+    </div>`).join('')+
+    `<div class="client-item" onclick="abrirModalCliente();closeSidebar()" style="margin-top:8px;color:var(--gold);opacity:.7">
+      <span>＋</span> Novo cliente
+    </div>`;
+}
+
+function filterClient(id){
+  activeClientFilter=activeClientFilter===id?null:id;
+  buildSidebarClients();
+  if(document.getElementById('match-list'))renderMatchList();
+  else renderMatches();
+}
+
+function showView(view){
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const idx=['matches','licitacoes','clientes'].indexOf(view);
+  document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
+  if(view==='matches')renderMatches();
+  if(view==='licitacoes')renderLicitacoes();
+  if(view==='clientes')renderClientes();
+}
+
+function getFilteredMatches(){
+  let matches=[...allMatches].filter(m=>m.status!=='descartado');
+  if(activeClientFilter)matches=matches.filter(m=>m.perfil_id==activeClientFilter);
+  if(dateFilter){
+    const licIds=new Set(allLics.filter(l=>l.data_publicacao&&l.data_publicacao.startsWith(dateFilter)).map(l=>l.id));
+    matches=matches.filter(m=>licIds.has(m.licitacao_id));
+  }
+  return matches;
+}
+
+function renderMetrics(matches){
+  const total=matches.length,altos=matches.filter(m=>m.score_calculado>=80).length,novos=matches.filter(m=>!m.status||m.status==='novo').length;
+  const valores=allLics.reduce((a,l)=>a+(l.valor_estimado||0),0);
+  const valStr=valores>=1e6?'R$ '+(valores/1e6).toFixed(1)+'M':valores>=1e3?'R$ '+(valores/1e3).toFixed(0)+'k':'R$ '+valores;
+  return`<div class="metrics">
+    <div class="metric-card"><div class="metric-label">Oportunidades</div><div class="metric-value gold">${total}</div><div class="metric-sub">matches ativos</div></div>
+    <div class="metric-card"><div class="metric-label">Score ≥ 80</div><div class="metric-value green">${altos}</div><div class="metric-sub">prioridade alta</div></div>
+    <div class="metric-card"><div class="metric-label">Não vistos</div><div class="metric-value">${novos}</div><div class="metric-sub">aguardando análise</div></div>
+    <div class="metric-card"><div class="metric-label">Valor total</div><div class="metric-value" style="font-size:20px">${valStr}</div><div class="metric-sub">em licitações</div></div>
+  </div>`;
+}
+
+function cardMatch(m,licMap,perfMap){
+  const lic=licMap[m.licitacao_id]||{},perf=perfMap[m.perfil_id]||{},score=m.score_calculado||0;
+  const sc=score>=80?'s-high':score>=60?'s-mid':'s-low';
+  const tags=['gold','blue','green'],tc=tags[allPerfis.findIndex(p=>p.id==m.perfil_id)%3];
+  const valor=lic.valor_estimado?'R$ '+Number(lic.valor_estimado).toLocaleString('pt-BR'):'Não informado';
+  const status=m.status||'novo';
+  const stc='status-'+(status==='novo'?'novo':status==='analisando'?'analisando':status==='participando'?'participando':'descartado');
+  const data=lic.data_publicacao?lic.data_publicacao.substring(0,10):'';
+  return`<div class="match-card ${score>=80?'priority':''}" id="mc-${m.id}">
+    <div>
+      <div class="match-client">
+        <span class="client-tag ${tc}">${perf.nome||'—'}</span>
+        <span class="status-pill ${stc}">${status}</span>
+        ${m.notificado?'<span style="font-size:10px;color:var(--text-dim)">✓ Notificado</span>':''}
+        ${data?'<span style="font-size:10px;color:var(--text-dim)">📅 '+data+'</span>':''}
+      </div>
+      <div class="match-objeto">${(lic.objeto||'Objeto não informado').substring(0,130)}${(lic.objeto||'').length>130?'...':''}</div>
+      <div class="match-meta">
+        <span>🏛️ ${lic.orgao_nome||'—'}</span>
+        <span>📍 ${lic.uf||'—'}</span>
+        <span>💰 ${valor}</span>
+      </div>
+      <div class="card-actions">
+        ${lic.link_pncp?'<a href="'+lic.link_pncp+'" target="_blank"><button class="btn-small">Ver edital</button></a>':''}
+        <button class="btn-small" onclick="mudarStatus(\'${m.id}\',\'analisando\')">Analisar</button>
+        <button class="btn-small primary" onclick="mudarStatus(\'${m.id}\',\'participando\')">Participar</button>
+        <button class="btn-small danger" onclick="mudarStatus(\'${m.id}\',\'descartado\')">Descartar</button>
+      </div>
+    </div>
+    <div class="score-ring"><div class="score-num ${sc}">${score}</div><div class="score-label">SCORE</div></div>
+  </div>`;
+}
+
+function renderMatches(){
+  const matches=getFilteredMatches();
+  const licMap=Object.fromEntries(allLics.map(l=>[l.id,l]));
+  const perfMap=Object.fromEntries(allPerfis.map(p=>[p.id,p]));
+  document.getElementById('main-content').innerHTML=
+    renderMetrics(matches)+
+    `<div class="section-header">
+      <div><div class="section-title">Oportunidades</div>
+      <div class="section-sub">${activeClientFilter?perfMap[activeClientFilter]?.nome:'Todos os clientes'}</div></div>
+      <button class="btn-small" onclick="activeClientFilter=null;buildSidebarClients();renderMatches()">Ver todos</button>
+    </div>
+    <div class="filters-row">
+      <div class="tabs">
+        <div class="tab active" onclick="filterTab('todos',this)">Todos</div>
+        <div class="tab" onclick="filterTab('novos',this)">Novos</div>
+        <div class="tab" onclick="filterTab('altos',this)">Score alto</div>
+        <div class="tab" onclick="filterTab('participando',this)">Participando</div>
+      </div>
+      <input type="date" class="date-filter" id="date-input" value="${dateFilter}"
+        onchange="dateFilter=this.value;renderMatchList()"
+        title="Filtrar por data de publicação">
+      ${dateFilter?'<button class="btn-small" onclick="dateFilter=\'\';document.getElementById(\'date-input\').value=\'\';renderMatchList()">✕ Limpar data</button>':''}
+    </div>
+    <div id="match-list">${
+      matches.length===0
+        ?'<div class="empty">Nenhuma oportunidade encontrada.</div>'
+        :matches.map(m=>cardMatch(m,licMap,perfMap)).join('')
+    }</div>`;
+}
+
+function renderMatchList(){
+  const matches=getFilteredMatches();
+  const activeTab=document.querySelector('.tab.active');
+  let filtered=[...matches];
+  if(activeTab){
+    const tipo=activeTab.textContent.toLowerCase().replace(' ','');
+    if(tipo==='novos')filtered=filtered.filter(m=>!m.status||m.status==='novo');
+    else if(tipo==='scorealto')filtered=filtered.filter(m=>m.score_calculado>=80);
+    else if(tipo==='participando')filtered=filtered.filter(m=>m.status==='participando');
+  }
+  const licMap=Object.fromEntries(allLics.map(l=>[l.id,l]));
+  const perfMap=Object.fromEntries(allPerfis.map(p=>[p.id,p]));
+  const lista=document.getElementById('match-list');
+  if(lista)lista.innerHTML=filtered.map(m=>cardMatch(m,licMap,perfMap)).join('')||'<div class="empty">Nenhum match neste filtro.</div>';
+  // atualiza métricas também
+  const metricsEl=document.querySelector('.metrics');
+  if(metricsEl)metricsEl.outerHTML=renderMetrics(matches);
+}
+
+function filterTab(tipo,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  let matches=getFilteredMatches();
+  if(tipo==='novos')matches=matches.filter(m=>!m.status||m.status==='novo');
+  if(tipo==='altos')matches=matches.filter(m=>m.score_calculado>=80);
+  if(tipo==='participando')matches=matches.filter(m=>m.status==='participando');
+  const licMap=Object.fromEntries(allLics.map(l=>[l.id,l]));
+  const perfMap=Object.fromEntries(allPerfis.map(p=>[p.id,p]));
+  const lista=document.getElementById('match-list');
+  if(lista)lista.innerHTML=matches.map(m=>cardMatch(m,licMap,perfMap)).join('')||'<div class="empty">Nenhum match neste filtro.</div>';
+}
+
+function renderLicitacoes(){
+  document.getElementById('main-content').innerHTML=
+    `<div class="section-header">
+      <div><div class="section-title">Licitações Coletadas</div><div class="section-sub">${allLics.length} registros</div></div>
+      <input type="date" class="date-filter" id="lic-date" onchange="filtrarLicitacoes(this.value)" title="Filtrar por data">
+    </div>
+    <div id="lic-list">`+renderLicList(allLics.slice(0,50))+'</div>';
+}
+
+function filtrarLicitacoes(data){
+  let lics=data?allLics.filter(l=>l.data_publicacao&&l.data_publicacao.startsWith(data)):allLics;
+  document.getElementById('lic-list').innerHTML=renderLicList(lics.slice(0,50));
+}
+
+function renderLicList(lics){
+  return lics.map(l=>`
+    <div class="match-card">
+      <div>
+        <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">${l.uf||'?'} · ${l.data_publicacao||'—'}</div>
+        <div class="match-objeto">${(l.objeto||'').substring(0,130)}...</div>
+        <div class="match-meta">
+          <span>🏛️ ${l.orgao_nome||'—'}</span>
+          <span>💰 ${l.valor_estimado?'R$ '+Number(l.valor_estimado).toLocaleString('pt-BR'):'Não informado'}</span>
+        </div>
+        <div class="card-actions">
+          ${l.link_pncp?'<a href="'+l.link_pncp+'" target="_blank"><button class="btn-small">Ver edital</button></a>':''}
+        </div>
+      </div><div></div>
+    </div>`).join('')||'<div class="empty">Nenhuma licitação nesta data.</div>';
+}
+
+function renderClientes(){
+  const mc=(id)=>allMatches.filter(m=>m.perfil_id==id&&m.status!=='descartado').length;
+  document.getElementById('main-content').innerHTML=
+    `<div class="section-header">
+      <div><div class="section-title">Clientes</div><div class="section-sub">${allPerfis.length} perfis</div></div>
+      <button class="btn-small primary" onclick="abrirModalCliente()">+ Novo cliente</button>
+    </div>`+
+    allPerfis.map(p=>`
+    <div class="match-card">
+      <div>
+        <div class="match-client">
+          <span class="client-tag gold">${p.segmento||'Sem segmento'}</span>
+          <div class="client-dot ${p.ativo?'':'inactive'}" style="margin-left:4px"></div>
+          <span style="font-size:11px;color:var(--text-dim)">${p.ativo?'Ativo':'Inativo'}</span>
+        </div>
+        <div class="match-objeto">${p.nome}</div>
+        <div class="match-meta">
+          <span>📍 ${(p.uf_interesse||[]).join(', ')}</span>
+          <span>🔑 ${(p.palavras_chave||[]).length} palavras</span>
+          <span>🚫 ${(p.palavras_excluir||[]).length} exclusões</span>
+          <span>📊 ${mc(p.id)} matches</span>
+        </div>
+        <div class="card-actions">
+          <button class="btn-small edit" onclick="abrirModalEditar(${p.id})">✏️ Editar</button>
+          <button class="btn-small danger" onclick="confirmarExcluir(${p.id})">🗑️ Excluir</button>
+        </div>
+      </div>
+      <div style="font-size:24px;font-weight:700;color:var(--gold);font-family:'Syne',sans-serif">${mc(p.id)}</div>
+    </div>`).join('');
+}
+
+async function mudarStatus(matchId,novoStatus){
+  const ok=await sbPatch('matches',matchId,{status:novoStatus});
+  if(ok){
+    const m=allMatches.find(m=>m.id==matchId);
+    if(m)m.status=novoStatus;
+    showToast('Status: '+novoStatus);
+    renderMatchList();
+    buildSidebarClients();
+  }else showToast('Erro ao atualizar.');
+}
+
+function dispararAlertas(){showToast('⚡ Rode: python scripts/alertas_telegram.py')}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+function abrirModalCliente(){
+  document.getElementById('modal-titulo').textContent='Novo Cliente';
+  document.getElementById('f-id').value='';
+  document.getElementById('f-nome').value='';
+  document.getElementById('f-segmento').value='';
+  document.getElementById('f-ufs').value='';
+  document.getElementById('f-palavras').value='';
+  document.getElementById('f-excluir').value='';
+  document.getElementById('btn-excluir-cliente').style.display='none';
+  document.getElementById('modal-cliente').classList.add('open');
+}
+
+function abrirModalEditar(id){
+  const p=allPerfis.find(p=>p.id==id);
+  if(!p)return;
+  document.getElementById('modal-titulo').textContent='Editar Cliente';
+  document.getElementById('f-id').value=p.id;
+  document.getElementById('f-nome').value=p.nome||'';
+  document.getElementById('f-segmento').value=p.segmento||'';
+  document.getElementById('f-ufs').value=(p.uf_interesse||[]).join(', ');
+  document.getElementById('f-palavras').value=(p.palavras_chave||[]).join('\n');
+  document.getElementById('f-excluir').value=(p.palavras_excluir||[]).join('\n');
+  document.getElementById('btn-excluir-cliente').style.display='inline-flex';
+  document.getElementById('modal-cliente').classList.add('open');
+}
+
+function fecharModal(){document.getElementById('modal-cliente').classList.remove('open')}
+
+function parseWords(str){
+  return str.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+}
+
+async function salvarCliente(){
+  const id=document.getElementById('f-id').value;
+  const nome=document.getElementById('f-nome').value.trim();
+  const segmento=document.getElementById('f-segmento').value.trim();
+  const ufs=document.getElementById('f-ufs').value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+  const palavras=parseWords(document.getElementById('f-palavras').value);
+  const excluir=parseWords(document.getElementById('f-excluir').value);
+  if(!nome){showToast('⚠️ Nome obrigatório');return}
+  const data={nome,segmento,palavras_chave:palavras,uf_interesse:ufs,palavras_excluir:excluir,ativo:true,score_minimo:60};
+  let ok;
+  if(id){
+    ok=await sbPatch('perfis_empresa',id,data);
+    if(ok){const i=allPerfis.findIndex(p=>p.id==id);if(i>=0)allPerfis[i]={...allPerfis[i],...data};}
+  }else{
+    ok=await sbPost('perfis_empresa',data);
+    if(ok)await init();
+  }
+  if(ok){fecharModal();showToast(id?'✅ Cliente atualizado!':'✅ Cliente cadastrado!');buildSidebarClients();if(document.querySelector('.nav-item:nth-child(3).active'))renderClientes();}
+  else showToast('❌ Erro ao salvar.');
+}
+
+function excluirCliente(){
+  clienteParaExcluir=document.getElementById('f-id').value;
+  fecharModal();
+  document.getElementById('modal-confirm').classList.add('open');
+}
+
+function confirmarExcluir(id){
+  clienteParaExcluir=id;
+  document.getElementById('modal-confirm').classList.add('open');
+}
+
+function fecharConfirm(){document.getElementById('modal-confirm').classList.remove('open');clienteParaExcluir=null}
+
+async function confirmarExclusao(){
+  if(!clienteParaExcluir)return;
+  // Excluir matches do cliente primeiro
+  await fetch(SUPABASE_URL+'/rest/v1/matches?perfil_id=eq.'+clienteParaExcluir,{method:'DELETE',headers:H});
+  const ok=await sbDelete('perfis_empresa',clienteParaExcluir);
+  fecharConfirm();
+  if(ok){showToast('Cliente excluído.');await init();}
+  else showToast('Erro ao excluir.');
+}
+
+init();
+</script>
+</body>
+</html>
