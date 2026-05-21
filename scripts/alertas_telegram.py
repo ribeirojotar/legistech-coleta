@@ -39,11 +39,7 @@ CHAT_IDS_CLIENTES = {
     "Gráfica & Brindes":                   "804078121",
     "Soluções em TI":                      "804078121",
     "C K M Distribuidora":                 "804078121",
-    "GF INFRAESTRUTURA E PAVIMENTACAO LTDA": "804078121",
-}
-}
-
-SEU_CHAT_ID = "804078121"
+   
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
