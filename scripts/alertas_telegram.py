@@ -35,9 +35,12 @@ SCORE_MINIMO_ALERTA = 65
 # 3. Pega o "id" dentro de "chat" e adiciona aqui
 
 CHAT_IDS_CLIENTES = {
-    "Engenharia Total":  "804078121",
-    "Gráfica & Brindes": "804078121",
-    "Soluções em TI":    "804078121",
+    "Engenharia Total":                    "804078121",
+    "Gráfica & Brindes":                   "804078121",
+    "Soluções em TI":                      "804078121",
+    "C K M Distribuidora":                 "804078121",
+    "GF INFRAESTRUTURA E PAVIMENTACAO LTDA": "804078121",
+}
 }
 
 SEU_CHAT_ID = "804078121"
