@@ -1,10 +1,5 @@
 """
 LegisTech Intelligence — Alertas via Telegram
-
-Uso:
-  python alertas_telegram.py              # envia alertas pendentes
-  python alertas_telegram.py --simular    # mostra mensagens sem enviar
-  python alertas_telegram.py --score 75   # só matches com score >= 75
 """
 
 import os
@@ -16,32 +11,25 @@ import requests
 from dotenv import load_dotenv, find_dotenv
 from supabase import create_client, Client
 
-# ─── Config ───────────────────────────────────────────────────────────────────
-
 load_dotenv(find_dotenv(), override=True)
 
 SUPABASE_URL  = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY  = os.environ.get("SUPABASE_KEY")
 
-TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "8662926278:AAEBz-wbtItR_lh109Eqdl6H3AUXLTANH28")
+TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "")
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
 SCORE_MINIMO_ALERTA = 65
 
-# ─── Chat IDs dos clientes ────────────────────────────────────────────────────
-# Para adicionar um cliente:
-# 1. O cliente manda /start para o bot
-# 2. Roda: python -c "import requests; r = requests.get('https://api.telegram.org/botSEU_TOKEN/getUpdates'); print(r.text)"
-# 3. Pega o "id" dentro de "chat" e adiciona aqui
-
 CHAT_IDS_CLIENTES = {
-    "Engenharia Total":                    "804078121",
-    "Gráfica & Brindes":                   "804078121",
-    "Soluções em TI":                      "804078121",
-    "C K M Distribuidora":                 "804078121",
-   
+    "Engenharia Total":                      "804078121",
+    "Gráfica & Brindes":                     "804078121",
+    "Soluções em TI":                        "804078121",
+    "C K M Distribuidora":                   "804078121",
+    "GF INFRAESTRUTURA E PAVIMENTACAO LTDA": "804078121",
+}
 
-# ─── Logging ──────────────────────────────────────────────────────────────────
+SEU_CHAT_ID = "804078121"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -51,10 +39,7 @@ logging.basicConfig(
 log = logging.getLogger("legistech.telegram")
 
 
-# ─── Escape MarkdownV2 ────────────────────────────────────────────────────────
-
 def escape_md(texto: str) -> str:
-    """Escapa caracteres especiais do MarkdownV2 do Telegram."""
     if not texto:
         return ""
     caracteres = r'_*[]()~`>#+-=|{}.!'
@@ -63,9 +48,7 @@ def escape_md(texto: str) -> str:
     return texto
 
 
-# ─── Formatar mensagem ────────────────────────────────────────────────────────
-
-def formatar_mensagem(cliente: str, matches: list[dict]) -> str:
+def formatar_mensagem(cliente: str, matches: list) -> str:
     hoje  = datetime.now().strftime("%d/%m/%Y")
     total = len(matches)
 
@@ -76,14 +59,14 @@ def formatar_mensagem(cliente: str, matches: list[dict]) -> str:
     ]
 
     for i, m in enumerate(matches, 1):
-        lic       = m.get("licitacao", {})
-        score     = m.get("score_calculado", 0)
-        objeto    = (lic.get("objeto") or "")[:100]
-        orgao     = lic.get("orgao_nome") or "Órgão não informado"
-        uf        = lic.get("uf") or ""
-        valor     = lic.get("valor_estimado")
-        link      = lic.get("link_pncp") or ""
-        resumo    = lic.get("resumo_ia") or ""
+        lic    = m.get("licitacao", {})
+        score  = m.get("score_calculado", 0)
+        objeto = (lic.get("objeto") or "")[:100]
+        orgao  = lic.get("orgao_nome") or "Órgão não informado"
+        uf     = lic.get("uf") or ""
+        valor  = lic.get("valor_estimado")
+        link   = lic.get("link_pncp") or ""
+        resumo = lic.get("resumo_ia") or ""
 
         emoji = "🔥" if score >= 85 else "✅" if score >= 70 else "🔎"
 
@@ -116,8 +99,6 @@ def formatar_mensagem(cliente: str, matches: list[dict]) -> str:
     return "\n".join(linhas)
 
 
-# ─── Envio via Telegram ───────────────────────────────────────────────────────
-
 def enviar_telegram(chat_id: str, mensagem: str) -> bool:
     try:
         resp = requests.post(
@@ -141,9 +122,7 @@ def enviar_telegram(chat_id: str, mensagem: str) -> bool:
         return False
 
 
-# ─── Buscar matches pendentes ─────────────────────────────────────────────────
-
-def buscar_matches_pendentes(supabase: Client, score_minimo: int) -> list[dict]:
+def buscar_matches_pendentes(supabase: Client, score_minimo: int) -> list:
     matches = supabase.table("matches").select(
         "id, perfil_id, licitacao_id, score_calculado, notificado"
     ).eq("notificado", False)\
@@ -175,19 +154,17 @@ def buscar_matches_pendentes(supabase: Client, score_minimo: int) -> list[dict]:
     return matches
 
 
-def agrupar_por_cliente(matches: list[dict]) -> dict[str, list[dict]]:
-    grupos: dict[str, list[dict]] = {}
+def agrupar_por_cliente(matches: list) -> dict:
+    grupos = {}
     for m in matches:
         nome = m.get("perfil", {}).get("nome", "Desconhecido")
         grupos.setdefault(nome, []).append(m)
     return grupos
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
-
 def main():
     parser = argparse.ArgumentParser(description="LegisTech — Alertas Telegram")
-    parser.add_argument("--simular", action="store_true", help="Mostrar sem enviar")
+    parser.add_argument("--simular", action="store_true")
     parser.add_argument("--score",   type=int, default=SCORE_MINIMO_ALERTA)
     args = parser.parse_args()
 
