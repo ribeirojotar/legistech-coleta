@@ -1,119 +1,167 @@
+"""
+LegisTech Intelligence — Motor de Análise Semântica (IA)
+Refina os matches criados pelo motor_matching.py com scoring via Gemini.
+Fluxo: consulta matches sem resumo_ia → chama Gemini → atualiza ou remove o match.
+"""
+
 import os
 import time
+import logging
 from google import genai
 from dotenv import load_dotenv, find_dotenv
 from supabase import create_client, Client
 
 load_dotenv(find_dotenv(), override=True)
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)s  %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger("legistech.ia")
 
-url: str = os.environ.get("SUPABASE_URL") or os.getenv("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY") or os.getenv("SUPABASE_KEY")
+GEMINI_KEY   = os.getenv("GEMINI_API_KEY")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
-if not url or not key:
-    raise ValueError(f"Credenciais não encontradas. URL: {bool(url)}, KEY: {bool(key)}")
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("Credenciais Supabase não encontradas.")
 
-supabase: Client = create_client(url, key)
+gemini: genai.Client = genai.Client(api_key=GEMINI_KEY)
+supabase: Client     = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-url: str = os.environ.get("SUPABASE_URL") or os.getenv("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY") or os.getenv("SUPABASE_KEY")
+SCORE_MINIMO_IA      = 70
+SLEEP_ENTRE_REQUESTS = 13   # respeita rate limit do Gemini free tier
+SLEEP_COTA           = 60   # espera ao atingir cota
+MAX_RETRY_COTA       = 2
 
-if not url or not key:
-    raise ValueError(f"Credenciais não encontradas. URL: {bool(url)}, KEY: {bool(key)}")
 
-supabase: Client = create_client(url, key)
-print("--- 🚀 Iniciando Motor de Analise Semantica (IA) ---")
-
-def analisar_licitacao_com_ia(objeto, perfil_nome, palavras_chave):
+def analisar_licitacao_com_ia(objeto: str, perfil_nome: str, palavras_chave: list):
     prompt = f"""
     Voce e um consultor especialista em Licitacoes Publicas (Lei 14.133/2021).
     Avalie a seguinte licitacao para a empresa '{perfil_nome}', cujo foco principal e: {', '.join(palavras_chave)}.
-    
+
     Objeto do Edital: "{objeto}"
-    
+
     Responda EXATAMENTE neste formato de duas linhas:
     SCORE: [nota de 0 a 100]
     RESUMO: [Um resumo executivo de 1 frase]
     """
     try:
-        response = client.models.generate_content(
+        response = gemini.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
         )
-
         if not response.text:
-            return 0, "IA BLOQUEOU A RESPOSTA POR SEGURANCA."
+            return 0, "IA bloqueou a resposta."
 
-        linhas = response.text.strip().split('\n')
-        score_val = linhas[0].upper().replace('SCORE:', '').strip()
-        resumo_val = linhas[1].upper().replace('RESUMO:', '').strip()
-
-        return int(score_val), resumo_val
+        linhas = response.text.strip().split("\n")
+        score_val  = int(linhas[0].upper().replace("SCORE:", "").strip())
+        resumo_val = linhas[1].upper().replace("RESUMO:", "").strip()
+        return score_val, resumo_val
 
     except Exception as e:
         if "429" in str(e):
-            return "COTA", "⚠️ COTA ATINGIDA! AGUARDANDO LIBERACAO..."
-        else:
-            print(f"⚠️ ERRO TECNICO NO ITEM: {e}")
-            return 0, "ERRO AO PROCESSAR ITEM."
-
-
-def salvar_match(perfil_id, licitacao_id, score, resumo):
-    try:
-        data = {
-            "perfil_id": perfil_id,
-            "licitacao_id": licitacao_id,
-            "score_calculado": score,
-            "resumo_ia": resumo,
-            "notificado": False
-        }
-        supabase.table("matches").insert(data).execute()
-        print(f"   ✅ Oportunidade de Score {score} salva com sucesso!")
-    except Exception as e:
-        print(f"   ❌ Erro ao salvar match: {e}")
+            return "COTA", "Cota Gemini atingida."
+        log.warning(f"Erro ao chamar Gemini: {e}")
+        return 0, "Erro ao processar item."
 
 
 def executar_analise():
-    print("1. Buscando clientes ativos...\n")
-    perfis = supabase.table("perfis_empresa").select("*").execute().data
+    log.info("=== Motor de Análise Semântica (IA) ===")
 
-    print("2. Buscando licitacoes pendentes...\n")
-    licitacoes = supabase.table("licitacoes_pncp").select("*").limit(5).execute().data
-
-    if not licitacoes:
-        print("Nenhuma licitacao nova para analisar.")
+    try:
+        # Busca apenas matches ainda não analisados pela IA (resumo_ia nulo)
+        matches = (
+            supabase.table("matches")
+            .select("id, perfil_id, licitacao_id")
+            .filter("resumo_ia", "is", "null")
+            .execute()
+            .data or []
+        )
+    except Exception as e:
+        log.error(f"Erro ao buscar matches pendentes: {e}")
         return
 
-    for perfil in perfis:
-        print(f"👔 ANALISANDO PARA: {perfil['nome'].upper()}")
-        print("-" * 50)
+    if not matches:
+        log.info("Nenhum match pendente para análise de IA.")
+        return
 
-        for lic in licitacoes:
-            print(f"Item: {lic['orgao_nome'][:30]}...")
+    log.info(f"{len(matches)} match(es) para analisar.")
 
+    # Pré-carrega licitações e perfis em dicionários para evitar N+1 queries
+    ids_lics   = list({m["licitacao_id"] for m in matches})
+    ids_perfis = list({m["perfil_id"]    for m in matches})
+
+    try:
+        licitacoes = {
+            l["id"]: l
+            for l in supabase.table("licitacoes_pncp")
+            .select("id, objeto, orgao_nome")
+            .in_("id", ids_lics)
+            .execute()
+            .data
+        }
+        perfis = {
+            p["id"]: p
+            for p in supabase.table("perfis_empresa")
+            .select("id, nome, palavras_chave")
+            .in_("id", ids_perfis)
+            .execute()
+            .data
+        }
+    except Exception as e:
+        log.error(f"Erro ao pré-carregar dados relacionados: {e}")
+        return
+
+    for i, match in enumerate(matches, 1):
+        lic    = licitacoes.get(match["licitacao_id"])
+        perfil = perfis.get(match["perfil_id"])
+
+        if not lic or not perfil:
+            log.warning(f"Dados incompletos para match {match['id']}, pulando.")
+            continue
+
+        log.info(f"[{i}/{len(matches)}] {perfil['nome'][:30]} — {(lic.get('orgao_nome') or '')[:30]}")
+
+        # Chama Gemini com retry automático em caso de cota atingida
+        cota_tentativas = 0
+        while True:
             score, resumo = analisar_licitacao_com_ia(
-                lic['objeto'],
-                perfil['nome'],
-                perfil['palavras_chave']
+                lic["objeto"],
+                perfil["nome"],
+                perfil["palavras_chave"],
             )
-
-            if score == "COTA":
-                print(f"   ↳ {resumo}")
+            if score != "COTA":
+                break
+            cota_tentativas += 1
+            if cota_tentativas >= MAX_RETRY_COTA:
+                log.error("Cota Gemini esgotada após retries. Encerrando análise.")
                 return
+            log.warning(f"Cota atingida. Aguardando {SLEEP_COTA}s (retry {cota_tentativas}/{MAX_RETRY_COTA})...")
+            time.sleep(SLEEP_COTA)
 
-            print(f"   ↳ 🎯 Score: {score}")
-            print(f"   ↳ 📝 Resumo: {resumo}")
+        log.info(f"  Score: {score} | {str(resumo)[:70]}")
 
-            if score >= 70:
-                salvar_match(perfil['id'], lic['id'], score, resumo)
+        try:
+            if score >= SCORE_MINIMO_IA:
+                # Atualiza o match existente com score e resumo da IA
+                supabase.table("matches").update({
+                    "score_calculado": score,
+                    "resumo_ia":       resumo,
+                }).eq("id", match["id"]).execute()
+                log.info(f"  ✓ Match {match['id']} atualizado (score {score}).")
             else:
-                print("   ℹ️ Score baixo, descartando match.")
+                # Score abaixo do mínimo — remove o match para não poluir a fila
+                supabase.table("matches").delete().eq("id", match["id"]).execute()
+                log.info(f"  Score {score} < {SCORE_MINIMO_IA}. Match {match['id']} removido.")
+        except Exception as e:
+            log.error(f"  Erro ao atualizar match {match['id']}: {e}")
 
-            print("   (Aguardando 13s...)")
-            time.sleep(13)
+        if i < len(matches):
+            time.sleep(SLEEP_ENTRE_REQUESTS)
 
-        print("\n" + "=" * 50 + "\n")
+    log.info("Análise IA concluída.")
 
 
 if __name__ == "__main__":

@@ -60,6 +60,7 @@ def escape_md(texto: str) -> str:
 def enviar_oportunidade(chat_id: str, match: dict, lic: dict, perf: dict) -> bool:
     """Envia uma oportunidade individual com botões inline."""
     score    = match.get("score_calculado", 0)
+    resumo   = match.get("resumo_ia") or ""
     objeto   = (lic.get("objeto") or "")[:150]
     orgao    = lic.get("orgao_nome") or "Órgão não informado"
     uf       = lic.get("uf") or ""
@@ -75,11 +76,14 @@ def enviar_oportunidade(chat_id: str, match: dict, lic: dict, perf: dict) -> boo
         if valor else "Valor não informado"
     )
 
+    resumo_linha = f"\n📊 <i>{resumo.capitalize()}</i>\n" if resumo else "\n"
+
     # Usar HTML em vez de MarkdownV2 — muito mais simples e sem problemas de escape
     texto = (
         f"🏆 <b>LegisTech — Nova Oportunidade</b>\n"
         f"Cliente: <b>{cliente}</b>\n\n"
-        f"{emoji} <b>Score: {score}/100</b>\n\n"
+        f"{emoji} <b>Score: {score}/100</b>\n"
+        f"{resumo_linha}\n"
         f"📋 {objeto}{'...' if len(objeto)==150 else ''}\n\n"
         f"🏛️ {orgao} ({uf})\n"
         f"💰 {valor_fmt}\n\n"
@@ -125,12 +129,16 @@ def enviar_oportunidade(chat_id: str, match: dict, lic: dict, perf: dict) -> boo
 
 
 def buscar_matches_pendentes(supabase: Client, score_minimo: int) -> list:
-    matches = supabase.table("matches").select(
-        "id, perfil_id, licitacao_id, score_calculado, notificado"
-    ).eq("notificado", False)\
-     .gte("score_calculado", score_minimo)\
-     .order("score_calculado", desc=True)\
-     .execute().data or []
+    try:
+        matches = supabase.table("matches").select(
+            "id, perfil_id, licitacao_id, score_calculado, notificado, resumo_ia"
+        ).eq("notificado", False)\
+         .gte("score_calculado", score_minimo)\
+         .order("score_calculado", desc=True)\
+         .execute().data or []
+    except Exception as e:
+        log.error(f"Erro ao buscar matches pendentes: {e}")
+        return []
 
     if not matches:
         return []
@@ -138,13 +146,17 @@ def buscar_matches_pendentes(supabase: Client, score_minimo: int) -> list:
     ids_lics   = list({m["licitacao_id"] for m in matches})
     ids_perfis = list({m["perfil_id"]    for m in matches})
 
-    licitacoes = supabase.table("licitacoes_pncp").select(
-        "id, objeto, orgao_nome, uf, valor_estimado, link_pncp, resumo_ia"
-    ).in_("id", ids_lics).execute().data or []
+    try:
+        licitacoes = supabase.table("licitacoes_pncp").select(
+            "id, objeto, orgao_nome, uf, valor_estimado, link_pncp"
+        ).in_("id", ids_lics).execute().data or []
 
-    perfis = supabase.table("perfis_empresa").select(
-        "id, nome"
-    ).in_("id", ids_perfis).execute().data or []
+        perfis = supabase.table("perfis_empresa").select(
+            "id, nome"
+        ).in_("id", ids_perfis).execute().data or []
+    except Exception as e:
+        log.error(f"Erro ao buscar dados relacionados: {e}")
+        return []
 
     mapa_lics = {l["id"]: l for l in licitacoes}
     mapa_perf = {p["id"]: p for p in perfis}

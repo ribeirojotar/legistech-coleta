@@ -8,6 +8,7 @@ on:
 jobs:
   coletar-e-processar:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -17,12 +18,13 @@ jobs:
 
     steps:
       - name: Baixar o código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Instalar Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
 
       - name: Instalar dependências
         run: pip install -r requirements.txt
@@ -35,6 +37,8 @@ jobs:
 
       - name: Rodar motor de IA
         run: python scripts/motor_ia.py
+        # Falha de cota ou timeout do Gemini não deve cancelar o envio de alertas
+        continue-on-error: true
 
       - name: Enviar alertas Telegram
         run: python scripts/alertas_telegram.py
