@@ -114,6 +114,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--cream);
   </div>
   <div class="topbar-right">
     <span class="date-badge" id="current-date"></span>
+    <span class="date-badge" id="last-update" style="cursor:pointer" onclick="recarregarDados()" title="Clique para atualizar agora"></span>
+    <button class="btn-alert" onclick="recarregarDados()">🔄 Atualizar</button>
     <button class="btn-alert" onclick="dispararAlertas()">⚡ Alertas</button>
   </div>
 </div>
@@ -206,10 +208,15 @@ async function init(){
     allLics=Array.isArray(l)?l:[];
     buildSidebarClients();
     showView('matches');
+    const el=document.getElementById('last-update');
+    if(el)el.textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   }catch(e){
     document.getElementById('main-content').innerHTML='<div class="empty">Erro ao conectar.<br>'+e.message+'</div>';
   }
 }
+
+// Auto-refresh a cada 2 minutos
+setInterval(()=>recarregarDados(),120000);
 
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open')}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open')}
@@ -465,6 +472,14 @@ async function mudarStatus(matchId,novoStatus){
 }
 
 function dispararAlertas(){showToast('⚡ Rode: python scripts/alertas_telegram.py')}
+
+async function recarregarDados(){
+  const el=document.getElementById('last-update');
+  if(el)el.textContent='Atualizando...';
+  const viewAtiva=document.querySelector('.nav-item.active')?.textContent?.trim();
+  await init();
+  showToast('✅ Dados atualizados!');
+}
 
 function showToast(msg){
   const t=document.getElementById('toast');
