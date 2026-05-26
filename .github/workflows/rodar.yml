@@ -2,7 +2,7 @@ name: LegisTech — Coleta e Matching diário
 
 on:
   schedule:
-  - cron: '0 11 * * 1-5'
+  - cron: '0 14 * * 1-5'
   workflow_dispatch:
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Rodar coletor PNCP
-        run: python scripts/coletor.py --ufs PI MA --dias 1
+        run: python scripts/coletor.py --ufs PI MA --dias 2
 
       - name: Rodar motor de matching
         run: python scripts/motor_matching.py
