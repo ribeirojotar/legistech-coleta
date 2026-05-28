@@ -8,7 +8,7 @@ on:
 jobs:
   coletar-e-processar:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -30,7 +30,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Rodar coletor PNCP
-        run: python scripts/coletor.py --ufs PI MA --dias 2
+        run: python scripts/coletor.py --ufs PI MA --dias 30
 
       - name: Rodar motor de matching
         run: python scripts/motor_matching.py

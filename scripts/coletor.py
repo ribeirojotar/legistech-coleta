@@ -36,6 +36,18 @@ SLEEP_RETRY = 20
 SLEEP_PAGE = 1.5
 MODALIDADES = [8, 1, 6]
 
+# Mapa de códigos para nomes
+NOMES_MODALIDADE = {
+    1: "Concorrência",
+    2: "Diálogo Competitivo",
+    3: "Concurso",
+    4: "Leilão",
+    5: "Pregão",
+    6: "Dispensa",
+    7: "Inexigibilidade",
+    8: "Pregão Eletrônico",
+}
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -108,7 +120,7 @@ def buscar_pagina_com_retry(uf, data_alvo, modalidade, pagina):
     return {}
 
 
-def salvar_no_supabase(lista):
+def salvar_no_supabase(lista, modalidade):
     if not lista:
         return 0, 0
     salvos = 0
@@ -121,6 +133,7 @@ def salvar_no_supabase(lista):
             "uf": extrair_uf(lic),
             "link_pncp": lic.get("linkSistemaOrigem"),
             "valor_estimado": lic.get("valorTotalEstimado"),
+            "modalidade": modalidade,
         }
         if not item["link_pncp"]:
             continue
@@ -144,7 +157,7 @@ def coletar_uf_data(uf, data_alvo):
             lista = dados.get("data", [])
             if not lista:
                 break
-            salvos, erros = salvar_no_supabase(lista)
+            salvos, erros = salvar_no_supabase(lista, modalidade)
             total_salvos += salvos
             log.info(f"  [{uf}] Modalidade {modalidade} | Pag {pagina}: {len(lista)} encontrados, {salvos} salvos, {erros} erros")
             total_paginas = dados.get("totalPaginas", 1)
