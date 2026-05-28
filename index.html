@@ -363,8 +363,6 @@ function renderMatches() {
   const perfMap=Object.fromEntries(allPerfis.map(p=>[p.id,p]));
   const novos=ms.filter(m=>!m.status||m.status==='novo').length;
   const comIA=ms.filter(m=>m.resumo_ia).length;
-  const dispensas=ms.filter(m=>isDispensa(licMap[m.licitacao_id])).length;
-
   document.getElementById('main-content').innerHTML=
     renderMetrics(ms)+
     `<div class="section-header">
@@ -380,7 +378,6 @@ function renderMatches() {
         <div class="tab" onclick="filterTab('novos',this)">Novos ${novos>0?`(${novos})`:''}</div>
         <div class="tab" onclick="filterTab('score alto',this)">Score alto</div>
         <div class="tab" onclick="filterTab('com ia',this)">Com IA ${comIA>0?`(${comIA})`:''}</div>
-        <div class="tab dispensa-tab" onclick="filterTab('dispensa',this)">⚡ Dispensa ${dispensas>0?`(${dispensas})`:''}</div>
         <div class="tab" onclick="filterTab('analisando',this)">Analisando</div>
         <div class="tab" onclick="filterTab('participando',this)">Participando</div>
       </div>
