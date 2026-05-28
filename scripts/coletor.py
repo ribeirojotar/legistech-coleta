@@ -120,20 +120,32 @@ def buscar_pagina_com_retry(uf, data_alvo, modalidade, pagina):
     return {}
 
 
+_KEYWORDS_PREGAO = {"registro de preco", "registro de preço", "srp", "pregao", "pregão"}
+
+def sanitizar_modalidade(modalidade, objeto):
+    if modalidade == 6 and objeto:
+        texto = objeto.lower()
+        if any(kw in texto for kw in _KEYWORDS_PREGAO):
+            return 8
+    return modalidade
+
+
 def salvar_no_supabase(lista, modalidade):
     if not lista:
         return 0, 0
     salvos = 0
     erros = 0
     for lic in lista:
+        objeto = lic.get("objetoCompra")
+        mod = sanitizar_modalidade(modalidade, objeto)
         item = {
             "orgao_nome": lic.get("orgaoEntidade", {}).get("razaoSocial"),
-            "objeto": lic.get("objetoCompra"),
+            "objeto": objeto,
             "data_publicacao": lic.get("dataPublicacaoPncp", "").split("T")[0] or None,
             "uf": extrair_uf(lic),
             "link_pncp": lic.get("linkSistemaOrigem"),
             "valor_estimado": lic.get("valorTotalEstimado"),
-            "modalidade": NOMES_MODALIDADE.get(modalidade, str(modalidade)),
+            "modalidade": mod,
         }
         if not item["link_pncp"]:
             continue
