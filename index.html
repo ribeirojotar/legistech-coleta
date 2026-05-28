@@ -9,12 +9,9 @@
 </head>
 <body>
 
-<!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <div class="hamburger" onclick="toggleSidebar()">
-      <span></span><span></span><span></span>
-    </div>
+    <div class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></div>
     <div class="logo">Legis<em>Tech</em><span class="logo-sub">Painel do Assessor</span></div>
   </div>
   <div class="topbar-right">
@@ -25,10 +22,7 @@
   </div>
 </div>
 
-<!-- LAYOUT -->
 <div class="layout">
-
-  <!-- SIDEBAR -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-label">Menu</div>
     <div class="nav-item active" onclick="showView('matches');closeSidebar()">📊 Oportunidades</div>
@@ -38,12 +32,9 @@
     <div class="sidebar-label">Clientes</div>
     <div id="sidebar-clients"></div>
   </nav>
-
-  <!-- MAIN -->
   <main class="main" id="main-content">
     <div class="loading"><div class="spinner"></div> Carregando...</div>
   </main>
-
 </div>
 
 <!-- MODAL: CLIENTE -->
@@ -98,224 +89,142 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* =====================================================================
-   CONFIG
-   ===================================================================== */
 const SB_URL = 'https://ojrowbvwnraqdikrvnlv.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qcm93YnZ3bnJhcWRpa3J2bmx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTE0MzcsImV4cCI6MjA5MzQyNzQzN30.YefvG7spS8lyOHaylTzUmByJhGuc9A-lsWKLc3KcqIA';
 const H = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
 
-/* =====================================================================
-   SUPABASE HELPERS
-   ===================================================================== */
-async function sbGet(table, qs = '') {
-  const r = await fetch(SB_URL + '/rest/v1/' + table + qs, { headers: H });
-  return r.ok ? r.json() : [];
-}
-async function sbPatch(table, id, data) {
-  const r = await fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + id, {
-    method: 'PATCH', headers: { ...H, 'Prefer': 'return=minimal' }, body: JSON.stringify(data)
-  });
-  return r.ok;
-}
-async function sbPost(table, data) {
-  const r = await fetch(SB_URL + '/rest/v1/' + table, {
-    method: 'POST', headers: { ...H, 'Prefer': 'return=minimal' }, body: JSON.stringify(data)
-  });
-  return r.ok;
-}
-async function sbDelete(table, id) {
-  const r = await fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + id, { method: 'DELETE', headers: H });
-  return r.ok;
-}
+async function sbGet(t, q='') { const r=await fetch(SB_URL+'/rest/v1/'+t+q,{headers:H}); return r.ok?r.json():[]; }
+async function sbPatch(t,id,d) { const r=await fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(d)}); return r.ok; }
+async function sbPost(t,d) { const r=await fetch(SB_URL+'/rest/v1/'+t,{method:'POST',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(d)}); return r.ok; }
+async function sbDelete(t,id) { const r=await fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:H}); return r.ok; }
 
-/* =====================================================================
-   STATE
-   ===================================================================== */
-let allMatches = [], allPerfis = [], allLics = [];
-let activeClientFilter = null, dateFilter = '';
-let clienteParaExcluir = null;
-let currentFiltered = [];
-let visibleCount = 20;
-const PAGE = 20;
+let allMatches=[], allPerfis=[], allLics=[];
+let activeClientFilter=null, dateFilter='';
+let clienteParaExcluir=null;
+let currentFiltered=[];
+let currentPage=1;
+let pageSize=30; // padrão
+
+const MODALIDADE_NOMES = { 1:'Concorrência', 6:'Dispensa', 8:'Pregão Eletrônico' };
 
 document.getElementById('current-date').textContent =
-  new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
 
-/* =====================================================================
-   INIT & REFRESH
-   ===================================================================== */
 async function init() {
-  document.getElementById('main-content').innerHTML = skeletonFull();
+  document.getElementById('main-content').innerHTML='<div class="loading"><div class="spinner"></div> Carregando...</div>';
   try {
-    const [m, p, l] = await Promise.all([
-      sbGet('matches', '?select=id,perfil_id,licitacao_id,score_calculado,notificado,status,resumo_ia,data_match&order=score_calculado.desc&limit=1000'),
-      sbGet('perfis_empresa', '?select=id,nome,segmento,uf_interesse,palavras_chave,palavras_excluir,ativo&order=nome'),
-      sbGet('licitacoes_pncp', '?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao,modalidade&order=data_publicacao.desc&limit=500'),
+    const [m,p,l] = await Promise.all([
+      sbGet('matches','?select=id,perfil_id,licitacao_id,score_calculado,notificado,status,resumo_ia,data_match&order=score_calculado.desc&limit=2000'),
+      sbGet('perfis_empresa','?select=id,nome,segmento,uf_interesse,palavras_chave,palavras_excluir,ativo&order=nome'),
+      sbGet('licitacoes_pncp','?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao,modalidade&order=data_publicacao.desc&limit=1000'),
     ]);
-    allMatches = Array.isArray(m) ? m : [];
-    allPerfis  = Array.isArray(p) ? p : [];
-    allLics    = Array.isArray(l) ? l : [];
+    allMatches=Array.isArray(m)?m:[];
+    allPerfis=Array.isArray(p)?p:[];
+    allLics=Array.isArray(l)?l:[];
     buildSidebarClients();
     showView('matches');
-    const el = document.getElementById('last-update');
-    if (el) el.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  } catch (e) {
-    document.getElementById('main-content').innerHTML =
-      `<div class="empty"><div class="empty-icon">⚠️</div>Erro ao conectar ao banco.<br><small>${e.message}</small></div>`;
+    const el=document.getElementById('last-update');
+    if(el) el.textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    document.getElementById('main-content').innerHTML=`<div class="empty">⚠️ Erro ao conectar.<br><small>${e.message}</small></div>`;
   }
 }
 
 async function recarregarDados() {
-  const el = document.getElementById('last-update');
-  if (el) el.textContent = 'Atualizando...';
+  const el=document.getElementById('last-update');
+  if(el) el.textContent='Atualizando...';
   await init();
   showToast('✅ Dados atualizados!');
 }
 
 setInterval(recarregarDados, 120000);
 
-/* =====================================================================
-   SKELETON
-   ===================================================================== */
-function skeletonCard() {
-  return `<div class="skel-card">
-    <div>
-      <div class="skel h10 w30 skel-gap"></div>
-      <div class="skel h12 w90 skel-gap"></div>
-      <div class="skel h10 w75 skel-gap"></div>
-      <div class="skel h10 w45"></div>
-    </div>
-    <div class="skel circle"></div>
-  </div>`;
-}
-
-function skeletonMetrics() {
-  return `<div class="metrics">
-    ${Array(4).fill(`<div class="metric-card">
-      <div class="skel h10 w60 skel-gap"></div>
-      <div class="skel h28 w45 skel-gap"></div>
-      <div class="skel h10 w30"></div>
-    </div>`).join('')}
-  </div>`;
-}
-
-function skeletonFull() {
-  return skeletonMetrics() + skeletonCard().repeat(5);
-}
-
-/* =====================================================================
-   SCORE RING (SVG)
-   ===================================================================== */
-function scoreRing(score) {
-  const r = 20;
-  const C = parseFloat((2 * Math.PI * r).toFixed(2));
-  const offset = parseFloat((C * (1 - score / 100)).toFixed(2));
-  const color = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--gold)' : 'var(--text-dim)';
-  return `<div class="score-ring">
-    <svg width="52" height="52" viewBox="0 0 52 52">
-      <circle cx="26" cy="26" r="${r}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/>
-      <circle cx="26" cy="26" r="${r}" fill="none" stroke="${color}" stroke-width="4"
-        stroke-dasharray="${C}" stroke-dashoffset="${offset}"
-        stroke-linecap="round" transform="rotate(-90 26 26)"
-        style="transition:stroke-dashoffset .5s ease"/>
-      <text x="26" y="31" text-anchor="middle" fill="${color}"
-        font-family="Syne,sans-serif" font-size="13" font-weight="800">${score}</text>
-    </svg>
-    <div class="score-lbl">SCORE</div>
-  </div>`;
-}
-
-/* =====================================================================
-   SIDEBAR
-   ===================================================================== */
-function toggleSidebar()  { document.getElementById('sidebar').classList.toggle('open'); }
-function closeSidebar()   { document.getElementById('sidebar').classList.remove('open'); }
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+function closeSidebar()  { document.getElementById('sidebar').classList.remove('open'); }
 
 function buildSidebarClients() {
-  const el = document.getElementById('sidebar-clients');
-  const novos  = id => allMatches.filter(m => m.perfil_id == id && (!m.status || m.status === 'novo')).length;
-  const ativos = id => allMatches.filter(m => m.perfil_id == id && m.status !== 'descartado').length;
-
-  el.innerHTML = allPerfis.map(p => {
-    const n = novos(p.id), a = ativos(p.id);
-    return `<div class="client-item ${activeClientFilter == p.id ? 'active' : ''}"
-      onclick="filterClient(${p.id});closeSidebar()">
-      <div class="dot ${p.ativo ? '' : 'off'}"></div>
+  const el=document.getElementById('sidebar-clients');
+  const novos=id=>allMatches.filter(m=>m.perfil_id==id&&(!m.status||m.status==='novo')).length;
+  const ativos=id=>allMatches.filter(m=>m.perfil_id==id&&m.status!=='descartado').length;
+  el.innerHTML=allPerfis.map(p=>{
+    const n=novos(p.id),a=ativos(p.id);
+    return `<div class="client-item ${activeClientFilter==p.id?'active':''}" onclick="filterClient(${p.id});closeSidebar()">
+      <div class="dot ${p.ativo?'':'off'}"></div>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.nome}</span>
-      ${n > 0 ? `<span class="badge badge-blue">${n} nov</span>` : a > 0 ? `<span class="badge badge-gold">${a}</span>` : ''}
+      ${n>0?`<span class="badge badge-blue">${n} nov</span>`:a>0?`<span class="badge badge-gold">${a}</span>`:''}
     </div>`;
-  }).join('') +
+  }).join('')+
   `<div class="client-item" onclick="abrirModalCliente();closeSidebar()" style="margin-top:8px;color:var(--gold);opacity:.75">
     <span>＋</span> Novo cliente
   </div>`;
 }
 
 function filterClient(id) {
-  activeClientFilter = activeClientFilter === id ? null : id;
+  activeClientFilter=activeClientFilter===id?null:id;
   buildSidebarClients();
-  document.getElementById('match-list') ? renderMatchList() : renderMatches();
+  document.getElementById('match-list')?renderMatchList():renderMatches();
 }
 
-/* =====================================================================
-   VIEW ROUTING
-   ===================================================================== */
 function showView(view) {
-  document.querySelectorAll('.nav-item').forEach((el, i) =>
-    el.classList.toggle('active', ['matches','licitacoes','clientes'][i] === view));
-  if (view === 'matches')    renderMatches();
-  if (view === 'licitacoes') renderLicitacoes();
-  if (view === 'clientes')   renderClientes();
+  document.querySelectorAll('.nav-item').forEach((el,i)=>
+    el.classList.toggle('active',['matches','licitacoes','clientes'][i]===view));
+  if(view==='matches')    renderMatches();
+  if(view==='licitacoes') renderLicitacoes();
+  if(view==='clientes')   renderClientes();
 }
 
-/* =====================================================================
-   FILTER LOGIC
-   ===================================================================== */
+function isDispensa(licitacao) {
+  if(!licitacao) return false;
+  // Modalidade 6 = Dispensa (campo numérico ou string)
+  if(licitacao.modalidade==6 || licitacao.modalidade==='6' || licitacao.modalidade==='Dispensa') return true;
+  // Fallback: portal licitamaisbrasil geralmente é dispensa
+  // Só usar se não tiver modalidade definida
+  return false;
+}
+
 function getFilteredMatches() {
-  let ms = allMatches.filter(m => m.status !== 'descartado');
-  if (activeClientFilter) ms = ms.filter(m => m.perfil_id == activeClientFilter);
-  if (dateFilter) {
-    const ids = new Set(allLics.filter(l => l.data_publicacao?.startsWith(dateFilter)).map(l => l.id));
-    ms = ms.filter(m => ids.has(m.licitacao_id));
+  let ms=allMatches.filter(m=>m.status!=='descartado');
+  if(activeClientFilter) ms=ms.filter(m=>m.perfil_id==activeClientFilter);
+  if(dateFilter) {
+    const ids=new Set(allLics.filter(l=>l.data_publicacao?.startsWith(dateFilter)).map(l=>l.id));
+    ms=ms.filter(m=>ids.has(m.licitacao_id));
   }
-  const licMap = Object.fromEntries(allLics.map(l => [l.id, l]));
-  ms.sort((a, b) => {
-    const da = licMap[a.licitacao_id]?.data_publicacao || '';
-    const db = licMap[b.licitacao_id]?.data_publicacao || '';
-    return db > da ? 1 : db < da ? -1 : (b.score_calculado || 0) - (a.score_calculado || 0);
+  const licMap=Object.fromEntries(allLics.map(l=>[l.id,l]));
+  ms.sort((a,b)=>{
+    const da=licMap[a.licitacao_id]?.data_publicacao||'';
+    const db=licMap[b.licitacao_id]?.data_publicacao||'';
+    return db>da?1:db<da?-1:(b.score_calculado||0)-(a.score_calculado||0);
   });
   return ms;
 }
 
 function applyTab(ms, tabText) {
-  const t = (tabText || '').toLowerCase().replace(/\s+/g, '');
-  if (t === 'novos')       return ms.filter(m => !m.status || m.status === 'novo');
-  if (t === 'scorealto')   return ms.filter(m => m.score_calculado >= 80);
-  if (t === 'comia')       return ms.filter(m => m.resumo_ia);
-  if (t === 'analisando')  return ms.filter(m => m.status === 'analisando');
-  if (t === 'participando')return ms.filter(m => m.status === 'participando');
+  const licMap=Object.fromEntries(allLics.map(l=>[l.id,l]));
+  const t=(tabText||'').toLowerCase().replace(/\s*\(.*\)/,'').trim();
+  if(t==='novos')       return ms.filter(m=>!m.status||m.status==='novo');
+  if(t==='score alto')  return ms.filter(m=>m.score_calculado>=80);
+  if(t==='com ia')      return ms.filter(m=>m.resumo_ia);
+  if(t==='dispensa')    return ms.filter(m=>isDispensa(licMap[m.licitacao_id]));
+  if(t==='analisando')  return ms.filter(m=>m.status==='analisando');
+  if(t==='participando')return ms.filter(m=>m.status==='participando');
   return ms;
 }
 
-/* =====================================================================
-   METRICS
-   ===================================================================== */
 function renderMetrics(ms) {
-  const total  = ms.length;
-  const novos  = ms.filter(m => !m.status || m.status === 'novo').length;
-  const analiz = ms.filter(m => m.status === 'analisando').length;
-  const partic = ms.filter(m => m.status === 'participando').length;
-  const hoje   = new Date().toISOString().slice(0, 10);
-  const idsHoje= new Set(allLics.filter(l => l.data_publicacao?.startsWith(hoje)).map(l => l.id));
-  const newHoje= ms.filter(m => idsHoje.has(m.licitacao_id)).length;
-  const pct    = total ? Math.round(novos / total * 100) : 0;
-
+  const total=ms.length;
+  const novos=ms.filter(m=>!m.status||m.status==='novo').length;
+  const analiz=ms.filter(m=>m.status==='analisando').length;
+  const partic=ms.filter(m=>m.status==='participando').length;
+  const hoje=new Date().toISOString().slice(0,10);
+  const idsHoje=new Set(allLics.filter(l=>l.data_publicacao?.startsWith(hoje)).map(l=>l.id));
+  const newHoje=ms.filter(m=>idsHoje.has(m.licitacao_id)).length;
+  const pct=total?Math.round(novos/total*100):0;
   return `<div class="metrics">
     <div class="metric-card">
       <div class="metric-label">Oportunidades</div>
       <div class="metric-value c-gold">${total}</div>
       <div class="metric-sub">matches ativos</div>
-      ${newHoje > 0 ? `<div class="metric-delta up">+${newHoje} publicadas hoje</div>` : '<div class="metric-delta neutral">nenhuma nova hoje</div>'}
+      ${newHoje>0?`<div class="metric-delta up">+${newHoje} publicadas hoje</div>`:'<div class="metric-delta neutral">nenhuma nova hoje</div>'}
     </div>
     <div class="metric-card">
       <div class="metric-label">Não vistos</div>
@@ -336,46 +245,67 @@ function renderMetrics(ms) {
   </div>`;
 }
 
-/* =====================================================================
-   MATCH CARD
-   ===================================================================== */
+function scoreRing(score) {
+  const r=20, C=parseFloat((2*Math.PI*r).toFixed(2));
+  const offset=parseFloat((C*(1-score/100)).toFixed(2));
+  const color=score>=80?'var(--green)':score>=60?'var(--gold)':'var(--text-dim)';
+  return `<div class="score-ring">
+    <svg width="52" height="52" viewBox="0 0 52 52">
+      <circle cx="26" cy="26" r="${r}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/>
+      <circle cx="26" cy="26" r="${r}" fill="none" stroke="${color}" stroke-width="4"
+        stroke-dasharray="${C}" stroke-dashoffset="${offset}" stroke-linecap="round"
+        transform="rotate(-90 26 26)" style="transition:stroke-dashoffset .5s ease"/>
+      <text x="26" y="31" text-anchor="middle" fill="${color}"
+        font-family="Syne,sans-serif" font-size="13" font-weight="800">${score}</text>
+    </svg>
+    <div class="score-lbl">SCORE</div>
+  </div>`;
+}
+
+function modalidadeNome(m) {
+  if(!m && m!==0) return '';
+  const n=MODALIDADE_NOMES[parseInt(m)];
+  return n||'Mod. '+m;
+}
+
+function modalidadeBadge(m) {
+  if(!m && m!==0) return '';
+  const nome=modalidadeNome(m);
+  const isD=(parseInt(m)===6);
+  return `<span class="mod-badge ${isD?'mod-dispensa':'mod-pregao'}">${nome}</span>`;
+}
+
 function cardMatch(m, licMap, perfMap) {
-  const lic   = licMap[m.licitacao_id]  || {};
-  const perf  = perfMap[m.perfil_id]    || {};
-  const score = m.score_calculado || 0;
-  const tags  = ['gold','blue','green'];
-  const tc    = tags[allPerfis.findIndex(p => p.id == m.perfil_id) % 3] || 'gold';
-  const valor = lic.valor_estimado
-    ? 'R$ ' + Number(lic.valor_estimado).toLocaleString('pt-BR')
-    : 'Não informado';
-  const status = m.status || 'novo';
-  const stMap  = { novo:'s-novo', analisando:'s-analisando', participando:'s-participando', descartado:'s-descartado' };
-  const data   = lic.data_publicacao?.substring(0, 10) || '';
-  const objeto = (lic.objeto || 'Objeto não informado');
-  const resumo = m.resumo_ia
-    ? m.resumo_ia.charAt(0).toUpperCase() + m.resumo_ia.slice(1).toLowerCase()
-    : '';
-
-  const cls = score >= 80 ? 'priority' : m.notificado ? 'notified' : '';
-
+  const lic=licMap[m.licitacao_id]||{};
+  const perf=perfMap[m.perfil_id]||{};
+  const score=m.score_calculado||0;
+  const tags=['gold','blue','green'];
+  const tc=tags[allPerfis.findIndex(p=>p.id==m.perfil_id)%3]||'gold';
+  const valor=lic.valor_estimado?'R$ '+Number(lic.valor_estimado).toLocaleString('pt-BR'):'Não informado';
+  const status=m.status||'novo';
+  const stMap={novo:'s-novo',analisando:'s-analisando',participando:'s-participando',descartado:'s-descartado'};
+  const data=lic.data_publicacao?.substring(0,10)||'';
+  const objeto=lic.objeto||'Objeto não informado';
+  const resumo=m.resumo_ia?m.resumo_ia.charAt(0).toUpperCase()+m.resumo_ia.slice(1).toLowerCase():'';
+  const cls=score>=80?'priority':m.notificado?'notified':'';
   return `<div class="match-card ${cls}" id="mc-${m.id}">
     <div>
       <div class="match-client">
-        <span class="client-tag ${tc}">${perf.nome || '—'}</span>
-        <span class="status-pill ${stMap[status] || 's-novo'}">${status}</span>
-        ${m.notificado ? '<span class="notif-pill">📱 Notificado</span>' : ''}
-        ${data ? `<span class="card-date">📅 ${data}</span>` : ''}
+        <span class="client-tag ${tc}">${perf.nome||'—'}</span>
+        <span class="status-pill ${stMap[status]||'s-novo'}">${status}</span>
+        ${m.notificado?'<span class="notif-pill">📱 Notificado</span>':''}
+        ${data?`<span class="card-date">📅 ${data}</span>`:''}
+        ${modalidadeBadge(lic.modalidade)}
       </div>
-      <div class="match-objeto">${objeto.substring(0, 130)}${objeto.length > 130 ? '…' : ''}</div>
-      ${resumo ? `<div class="match-resumo">💡 ${resumo}</div>` : ''}
+      <div class="match-objeto">${objeto.substring(0,130)}${objeto.length>130?'…':''}</div>
+      ${resumo?`<div class="match-resumo">💡 ${resumo}</div>`:''}
       <div class="match-meta">
-        <span>🏛️ ${lic.orgao_nome || '—'}</span>
-        <span>📍 ${lic.uf || '—'}</span>
+        <span>🏛️ ${lic.orgao_nome||'—'}</span>
+        <span>📍 ${lic.uf||'—'}</span>
         <span>💰 ${valor}</span>
-        ${lic.modalidade ? `<span>📄 ${lic.modalidade}</span>` : ''}
       </div>
       <div class="card-actions">
-        ${lic.link_pncp ? `<a href="${lic.link_pncp}" target="_blank" rel="noopener"><button class="btn-act ghost">🔗 Ver edital</button></a>` : ''}
+        ${lic.link_pncp?`<a href="${lic.link_pncp}" target="_blank" rel="noopener"><button class="btn-act ghost">🔗 Ver edital</button></a>`:''}
         <button class="btn-act warn"    onclick="mudarStatus('${m.id}','analisando')">🔍 Analisar</button>
         <button class="btn-act success" onclick="mudarStatus('${m.id}','participando')">✅ Participar</button>
         <button class="btn-act discard" onclick="mudarStatus('${m.id}','descartado')">Descartar</button>
@@ -385,33 +315,74 @@ function cardMatch(m, licMap, perfMap) {
   </div>`;
 }
 
-/* =====================================================================
-   MATCHES VIEW
-   ===================================================================== */
-function renderMatches() {
-  const ms      = getFilteredMatches();
-  const licMap  = Object.fromEntries(allLics.map(l  => [l.id,  l]));
-  const perfMap = Object.fromEntries(allPerfis.map(p => [p.id, p]));
-  const novos   = ms.filter(m => !m.status || m.status === 'novo').length;
-  const comIA   = ms.filter(m => m.resumo_ia).length;
+function renderPagination(total) {
+  const totalPages=Math.ceil(total/pageSize);
+  if(totalPages<=1 && total<=pageSize) return '';
+  const start=(currentPage-1)*pageSize+1;
+  const end=Math.min(currentPage*pageSize,total);
+  let pages='';
+  for(let i=1;i<=totalPages;i++) {
+    if(i===1||i===totalPages||Math.abs(i-currentPage)<=1) {
+      pages+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    } else if(Math.abs(i-currentPage)===2) {
+      pages+=`<span class="page-dots">…</span>`;
+    }
+  }
+  return `<div class="pagination">
+    <div class="page-info">${start}–${end} de ${total}</div>
+    <div class="page-controls">
+      <button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>
+      ${pages}
+      <button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>
+    </div>
+    <div class="page-size-select">
+      <span style="font-size:11px;color:var(--text-dim)">por página:</span>
+      ${[30,50,100].map(n=>`<button class="page-btn ${pageSize===n?'active':''}" onclick="setPageSize(${n})">${n}</button>`).join('')}
+    </div>
+  </div>`;
+}
 
-  document.getElementById('main-content').innerHTML =
-    renderMetrics(ms) +
+function goPage(p) {
+  const total=currentFiltered.length;
+  const totalPages=Math.ceil(total/pageSize);
+  if(p<1||p>totalPages) return;
+  currentPage=p;
+  _renderPage();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function setPageSize(n) {
+  pageSize=n;
+  currentPage=1;
+  _renderPage();
+}
+
+function renderMatches() {
+  const ms=getFilteredMatches();
+  const licMap=Object.fromEntries(allLics.map(l=>[l.id,l]));
+  const perfMap=Object.fromEntries(allPerfis.map(p=>[p.id,p]));
+  const novos=ms.filter(m=>!m.status||m.status==='novo').length;
+  const comIA=ms.filter(m=>m.resumo_ia).length;
+  const dispensas=ms.filter(m=>isDispensa(licMap[m.licitacao_id])).length;
+
+  document.getElementById('main-content').innerHTML=
+    renderMetrics(ms)+
     `<div class="section-header">
       <div>
         <div class="section-title">Oportunidades</div>
-        <div class="section-sub">${activeClientFilter ? perfMap[activeClientFilter]?.nome : 'Todos os clientes'}</div>
+        <div class="section-sub">${activeClientFilter?perfMap[activeClientFilter]?.nome:'Todos os clientes'}</div>
       </div>
       <button class="btn" onclick="activeClientFilter=null;buildSidebarClients();renderMatches()">Ver todos</button>
     </div>
     <div class="filters-row">
       <div class="tabs">
         <div class="tab active" onclick="filterTab('todos',this)">Todos</div>
-        <div class="tab"        onclick="filterTab('novos',this)">Novos ${novos > 0 ? `(${novos})` : ''}</div>
-        <div class="tab"        onclick="filterTab('scorealto',this)">Score alto</div>
-        <div class="tab"        onclick="filterTab('comia',this)">Com IA ${comIA > 0 ? `(${comIA})` : ''}</div>
-        <div class="tab"        onclick="filterTab('analisando',this)">Analisando</div>
-        <div class="tab"        onclick="filterTab('participando',this)">Participando</div>
+        <div class="tab" onclick="filterTab('novos',this)">Novos ${novos>0?`(${novos})`:''}</div>
+        <div class="tab" onclick="filterTab('score alto',this)">Score alto</div>
+        <div class="tab" onclick="filterTab('com ia',this)">Com IA ${comIA>0?`(${comIA})`:''}</div>
+        <div class="tab dispensa-tab" onclick="filterTab('dispensa',this)">⚡ Dispensa ${dispensas>0?`(${dispensas})`:''}</div>
+        <div class="tab" onclick="filterTab('analisando',this)">Analisando</div>
+        <div class="tab" onclick="filterTab('participando',this)">Participando</div>
       </div>
       <div class="filter-group">
         <span class="filter-label">Publicadas em:</span>
@@ -422,58 +393,47 @@ function renderMatches() {
     </div>
     <div id="match-list"></div>`;
 
-  currentFiltered = ms;
-  visibleCount = PAGE;
-  _renderPage(licMap, perfMap);
+  currentFiltered=ms;
+  currentPage=1;
+  _renderPage(licMap,perfMap);
 }
 
 function renderMatchList() {
-  const activeTab = document.querySelector('.tab.active');
-  const ms        = getFilteredMatches();
-  currentFiltered = applyTab(ms, activeTab?.textContent);
-  visibleCount    = PAGE;
+  const activeTab=document.querySelector('.tab.active');
+  const ms=getFilteredMatches();
+  currentFiltered=applyTab(ms,activeTab?.textContent);
+  currentPage=1;
   _renderPage();
-  const metricsEl = document.querySelector('.metrics');
-  if (metricsEl) metricsEl.outerHTML = renderMetrics(ms);
+  const metricsEl=document.querySelector('.metrics');
+  if(metricsEl) metricsEl.outerHTML=renderMetrics(ms);
 }
 
 function _renderPage(licMapArg, perfMapArg) {
-  const licMap  = licMapArg  || Object.fromEntries(allLics.map(l  => [l.id,  l]));
-  const perfMap = perfMapArg || Object.fromEntries(allPerfis.map(p => [p.id, p]));
-  const slice   = currentFiltered.slice(0, visibleCount);
-  const left    = currentFiltered.length - slice.length;
-  const lista   = document.getElementById('match-list');
-  if (!lista) return;
-  lista.innerHTML =
+  const licMap=licMapArg||Object.fromEntries(allLics.map(l=>[l.id,l]));
+  const perfMap=perfMapArg||Object.fromEntries(allPerfis.map(p=>[p.id,p]));
+  const total=currentFiltered.length;
+  const start=(currentPage-1)*pageSize;
+  const slice=currentFiltered.slice(start,start+pageSize);
+  const lista=document.getElementById('match-list');
+  if(!lista) return;
+  lista.innerHTML=
     (slice.length
-      ? slice.map(m => cardMatch(m, licMap, perfMap)).join('')
-      : '<div class="empty"><div class="empty-icon">🔍</div>Nenhuma oportunidade neste filtro.</div>') +
-    (left > 0
-      ? `<div class="load-more"><button class="btn" onclick="carregarMais()">Carregar mais ${left} oportunidades</button></div>`
-      : '');
-}
-
-function carregarMais() {
-  visibleCount += PAGE;
-  _renderPage();
+      ?slice.map(m=>cardMatch(m,licMap,perfMap)).join('')
+      :'<div class="empty"><div class="empty-icon">🔍</div>Nenhuma oportunidade neste filtro.</div>')+
+    renderPagination(total);
 }
 
 function filterTab(tipo, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  currentFiltered = applyTab(getFilteredMatches(), el.textContent);
-  visibleCount = PAGE;
+  currentFiltered=applyTab(getFilteredMatches(),tipo);
+  currentPage=1;
   _renderPage();
 }
 
-/* =====================================================================
-   LICITAÇÕES VIEW
-   ===================================================================== */
 function renderLicitacoes() {
-  const sorted = [...allLics].sort((a, b) =>
-    (b.data_publicacao || '') > (a.data_publicacao || '') ? 1 : -1);
-
-  document.getElementById('main-content').innerHTML =
+  const sorted=[...allLics].sort((a,b)=>(b.data_publicacao||'')>(a.data_publicacao||'')?1:-1);
+  document.getElementById('main-content').innerHTML=
     `<div class="section-header">
       <div>
         <div class="section-title">Licitações Coletadas</div>
@@ -485,62 +445,61 @@ function renderLicitacoes() {
         <button class="btn-clear" onclick="document.getElementById('lic-date').value='';filtrarLics('')">✕</button>
       </div>
     </div>
-    <div id="lic-list">${renderLicList(sorted.slice(0, 50))}</div>`;
+    <div id="lic-list">${renderLicList(sorted.slice(0,50))}</div>`;
 }
 
 function filtrarLics(data) {
-  const sorted = [...allLics].sort((a, b) =>
-    (b.data_publicacao || '') > (a.data_publicacao || '') ? 1 : -1);
-  const list = data ? sorted.filter(l => l.data_publicacao?.startsWith(data)) : sorted;
-  document.getElementById('lic-list').innerHTML = renderLicList(list.slice(0, 100));
+  const sorted=[...allLics].sort((a,b)=>(b.data_publicacao||'')>(a.data_publicacao||'')?1:-1);
+  const list=data?sorted.filter(l=>l.data_publicacao?.startsWith(data)):sorted;
+  document.getElementById('lic-list').innerHTML=renderLicList(list.slice(0,100));
 }
 
 function renderLicList(lics) {
-  if (!lics.length) return '<div class="empty"><div class="empty-icon">📋</div>Nenhuma licitação nesta data.</div>';
-  return lics.map(l => `
+  if(!lics.length) return '<div class="empty"><div class="empty-icon">📋</div>Nenhuma licitação nesta data.</div>';
+  return lics.map(l=>`
     <div class="match-card" style="grid-template-columns:1fr">
       <div>
-        <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px">${l.uf || '?'} · ${l.data_publicacao || '—'}${l.modalidade ? ' · ' + l.modalidade : ''}</div>
-        <div class="match-objeto">${(l.objeto || '').substring(0, 130)}…</div>
-        <div class="match-meta" style="margin-top:6px">
-          <span>🏛️ ${l.orgao_nome || '—'}</span>
-          <span>💰 ${l.valor_estimado ? 'R$ ' + Number(l.valor_estimado).toLocaleString('pt-BR') : 'Não informado'}</span>
+        <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px;display:flex;gap:8px;align-items:center">
+          <span>${l.uf||'?'} · ${l.data_publicacao||'—'}</span>
+          ${l.modalidade?modalidadeBadge(l.modalidade):''}
         </div>
-        ${l.link_pncp ? `<div class="card-actions"><a href="${l.link_pncp}" target="_blank" rel="noopener"><button class="btn-act ghost">🔗 Ver edital</button></a></div>` : ''}
+        <div class="match-objeto">${(l.objeto||'').substring(0,130)}…</div>
+        <div class="match-meta" style="margin-top:6px">
+          <span>🏛️ ${l.orgao_nome||'—'}</span>
+          <span>💰 ${l.valor_estimado?'R$ '+Number(l.valor_estimado).toLocaleString('pt-BR'):'Não informado'}</span>
+        </div>
+        ${l.link_pncp?`<div class="card-actions"><a href="${l.link_pncp}" target="_blank" rel="noopener"><button class="btn-act ghost">🔗 Ver edital</button></a></div>`:''}
       </div>
     </div>`).join('');
 }
 
-/* =====================================================================
-   CLIENTES VIEW
-   ===================================================================== */
 function renderClientes() {
-  const ativos = id => allMatches.filter(m => m.perfil_id == id && m.status !== 'descartado').length;
-  document.getElementById('main-content').innerHTML =
+  const ativos=id=>allMatches.filter(m=>m.perfil_id==id&&m.status!=='descartado').length;
+  document.getElementById('main-content').innerHTML=
     `<div class="section-header">
       <div>
         <div class="section-title">Clientes</div>
         <div class="section-sub">${allPerfis.length} perfis cadastrados</div>
       </div>
       <button class="btn primary" onclick="abrirModalCliente()">+ Novo cliente</button>
-    </div>` +
-    allPerfis.map(p => `
+    </div>`+
+    allPerfis.map(p=>`
     <div class="match-card">
       <div>
         <div class="match-client">
-          <span class="client-tag gold">${p.segmento || 'Sem segmento'}</span>
-          <div class="dot ${p.ativo ? '' : 'off'}" style="margin-left:2px"></div>
-          <span style="font-size:11px;color:var(--text-dim)">${p.ativo ? 'Ativo' : 'Inativo'}</span>
+          <span class="client-tag gold">${p.segmento||'Sem segmento'}</span>
+          <div class="dot ${p.ativo?'':'off'}" style="margin-left:2px"></div>
+          <span style="font-size:11px;color:var(--text-dim)">${p.ativo?'Ativo':'Inativo'}</span>
         </div>
         <div class="match-objeto">${p.nome}</div>
         <div class="match-meta">
-          <span>📍 ${(p.uf_interesse || []).join(', ')}</span>
-          <span>🔑 ${(p.palavras_chave || []).length} palavras-chave</span>
-          <span>🚫 ${(p.palavras_excluir || []).length} exclusões</span>
+          <span>📍 ${(p.uf_interesse||[]).join(', ')}</span>
+          <span>🔑 ${(p.palavras_chave||[]).length} palavras-chave</span>
+          <span>🚫 ${(p.palavras_excluir||[]).length} exclusões</span>
           <span>📊 ${ativos(p.id)} matches ativos</span>
         </div>
         <div class="card-actions">
-          <button class="btn edit"  onclick="abrirModalEditar(${p.id})">✏️ Editar</button>
+          <button class="btn edit" onclick="abrirModalEditar(${p.id})">✏️ Editar</button>
           <button class="btn danger" onclick="confirmarExcluir(${p.id})">🗑️ Excluir</button>
         </div>
       </div>
@@ -548,128 +507,107 @@ function renderClientes() {
     </div>`).join('');
 }
 
-/* =====================================================================
-   STATUS UPDATE
-   ===================================================================== */
 async function mudarStatus(matchId, novoStatus) {
-  const ok = await sbPatch('matches', matchId, { status: novoStatus });
-  if (!ok) { showToast('❌ Erro ao atualizar.'); return; }
-
-  const m = allMatches.find(m => m.id == matchId);
-  if (m) m.status = novoStatus;
-
-  const labels = { analisando: '🔍 Analisando', participando: '✅ Participando!', descartado: '❌ Descartado' };
-  showToast(labels[novoStatus] || novoStatus);
-
-  if (novoStatus === 'descartado') {
-    currentFiltered = currentFiltered.filter(m => m.id != matchId);
-  }
+  const ok=await sbPatch('matches',matchId,{status:novoStatus});
+  if(!ok) { showToast('❌ Erro ao atualizar.'); return; }
+  const m=allMatches.find(m=>m.id==matchId);
+  if(m) m.status=novoStatus;
+  const labels={analisando:'🔍 Analisando',participando:'✅ Participando!',descartado:'❌ Descartado'};
+  showToast(labels[novoStatus]||novoStatus);
+  if(novoStatus==='descartado') currentFiltered=currentFiltered.filter(m=>m.id!=matchId);
   _renderPage();
   buildSidebarClients();
-  const metricsEl = document.querySelector('.metrics');
-  if (metricsEl) metricsEl.outerHTML = renderMetrics(getFilteredMatches());
+  const metricsEl=document.querySelector('.metrics');
+  if(metricsEl) metricsEl.outerHTML=renderMetrics(getFilteredMatches());
 }
 
-/* =====================================================================
-   TOAST
-   ===================================================================== */
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3200);
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
 }
 
 function dispararAlertas() { showToast('⚡ Rode: python scripts/alertas_telegram.py'); }
 
-/* =====================================================================
-   MODAIS — CLIENTE
-   ===================================================================== */
 function abrirModalCliente() {
-  ['f-id','f-nome','f-segmento','f-ufs','f-palavras','f-excluir'].forEach(id =>
-    document.getElementById(id).value = '');
-  document.getElementById('modal-titulo').textContent = 'Novo Cliente';
-  document.getElementById('btn-excluir-cliente').style.display = 'none';
+  ['f-id','f-nome','f-segmento','f-ufs','f-palavras','f-excluir'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('modal-titulo').textContent='Novo Cliente';
+  document.getElementById('btn-excluir-cliente').style.display='none';
   document.getElementById('modal-cliente').classList.add('open');
 }
 
 function abrirModalEditar(id) {
-  const p = allPerfis.find(p => p.id == id);
-  if (!p) return;
-  document.getElementById('modal-titulo').textContent = 'Editar Cliente';
-  document.getElementById('f-id').value       = p.id;
-  document.getElementById('f-nome').value     = p.nome || '';
-  document.getElementById('f-segmento').value = p.segmento || '';
-  document.getElementById('f-ufs').value      = (p.uf_interesse  || []).join(', ');
-  document.getElementById('f-palavras').value = (p.palavras_chave || []).join('\n');
-  document.getElementById('f-excluir').value  = (p.palavras_excluir || []).join('\n');
-  document.getElementById('btn-excluir-cliente').style.display = 'inline-flex';
+  const p=allPerfis.find(p=>p.id==id);
+  if(!p) return;
+  document.getElementById('modal-titulo').textContent='Editar Cliente';
+  document.getElementById('f-id').value=p.id;
+  document.getElementById('f-nome').value=p.nome||'';
+  document.getElementById('f-segmento').value=p.segmento||'';
+  document.getElementById('f-ufs').value=(p.uf_interesse||[]).join(', ');
+  document.getElementById('f-palavras').value=(p.palavras_chave||[]).join('\n');
+  document.getElementById('f-excluir').value=(p.palavras_excluir||[]).join('\n');
+  document.getElementById('btn-excluir-cliente').style.display='inline-flex';
   document.getElementById('modal-cliente').classList.add('open');
 }
 
 function fecharModal() { document.getElementById('modal-cliente').classList.remove('open'); }
-
-function parseWords(str) {
-  return str.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
-}
+function parseWords(str) { return str.split(/[\n,]/).map(s=>s.trim()).filter(Boolean); }
 
 async function salvarCliente() {
-  const id       = document.getElementById('f-id').value;
-  const nome     = document.getElementById('f-nome').value.trim();
-  const segmento = document.getElementById('f-segmento').value.trim();
-  const ufs      = document.getElementById('f-ufs').value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-  const palavras = parseWords(document.getElementById('f-palavras').value);
-  const excluir  = parseWords(document.getElementById('f-excluir').value);
-  if (!nome) { showToast('⚠️ Nome obrigatório'); return; }
-
-  const data = { nome, segmento, palavras_chave: palavras, uf_interesse: ufs, palavras_excluir: excluir, ativo: true, score_minimo: 60 };
+  const id=document.getElementById('f-id').value;
+  const nome=document.getElementById('f-nome').value.trim();
+  const segmento=document.getElementById('f-segmento').value.trim();
+  const ufs=document.getElementById('f-ufs').value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+  const palavras=parseWords(document.getElementById('f-palavras').value);
+  const excluir=parseWords(document.getElementById('f-excluir').value);
+  if(!nome) { showToast('⚠️ Nome obrigatório'); return; }
+  const data={nome,segmento,palavras_chave:palavras,uf_interesse:ufs,palavras_excluir:excluir,ativo:true,score_minimo:60};
   let ok;
-  if (id) {
-    ok = await sbPatch('perfis_empresa', id, data);
-    if (ok) { const i = allPerfis.findIndex(p => p.id == id); if (i >= 0) allPerfis[i] = { ...allPerfis[i], ...data }; }
+  if(id) {
+    ok=await sbPatch('perfis_empresa',id,data);
+    if(ok) { const i=allPerfis.findIndex(p=>p.id==id); if(i>=0) allPerfis[i]={...allPerfis[i],...data}; }
   } else {
-    ok = await sbPost('perfis_empresa', data);
-    if (ok) await init();
+    ok=await sbPost('perfis_empresa',data);
+    if(ok) await init();
   }
-  if (ok) {
-    fecharModal();
-    showToast(id ? '✅ Cliente atualizado!' : '✅ Cliente cadastrado!');
-    buildSidebarClients();
-    if (document.querySelector('.nav-item:nth-child(3).active')) renderClientes();
-  } else {
-    showToast('❌ Erro ao salvar.');
-  }
+  if(ok) { fecharModal(); showToast(id?'✅ Cliente atualizado!':'✅ Cliente cadastrado!'); buildSidebarClients(); if(document.querySelector('.nav-item:nth-child(3).active')) renderClientes(); }
+  else showToast('❌ Erro ao salvar.');
 }
 
-function excluirCliente() {
-  clienteParaExcluir = document.getElementById('f-id').value;
-  fecharModal();
-  document.getElementById('modal-confirm').classList.add('open');
-}
-
-function confirmarExcluir(id) {
-  clienteParaExcluir = id;
-  document.getElementById('modal-confirm').classList.add('open');
-}
-
-function fecharConfirm() {
-  document.getElementById('modal-confirm').classList.remove('open');
-  clienteParaExcluir = null;
-}
+function excluirCliente() { clienteParaExcluir=document.getElementById('f-id').value; fecharModal(); document.getElementById('modal-confirm').classList.add('open'); }
+function confirmarExcluir(id) { clienteParaExcluir=id; document.getElementById('modal-confirm').classList.add('open'); }
+function fecharConfirm() { document.getElementById('modal-confirm').classList.remove('open'); clienteParaExcluir=null; }
 
 async function confirmarExclusao() {
-  if (!clienteParaExcluir) return;
-  await fetch(SB_URL + '/rest/v1/matches?perfil_id=eq.' + clienteParaExcluir, { method: 'DELETE', headers: H });
-  const ok = await sbDelete('perfis_empresa', clienteParaExcluir);
+  if(!clienteParaExcluir) return;
+  await fetch(SB_URL+'/rest/v1/matches?perfil_id=eq.'+clienteParaExcluir,{method:'DELETE',headers:H});
+  const ok=await sbDelete('perfis_empresa',clienteParaExcluir);
   fecharConfirm();
-  if (ok) { showToast('Cliente excluído.'); await init(); }
+  if(ok) { showToast('Cliente excluído.'); await init(); }
   else showToast('❌ Erro ao excluir.');
 }
 
-/* =====================================================================
-   START
-   ===================================================================== */
 init();
 </script>
+
+<style>
+/* PAGINAÇÃO */
+.pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:16px 0;margin-top:8px;border-top:1px solid var(--border)}
+.page-info{font-size:12px;color:var(--text-dim)}
+.page-controls{display:flex;gap:4px;align-items:center}
+.page-size-select{display:flex;align-items:center;gap:4px}
+.page-btn{background:var(--navy-light);border:1px solid var(--border);color:var(--text-mid);border-radius:5px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.page-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+.page-btn.active{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:700}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+.page-dots{color:var(--text-dim);padding:0 4px;font-size:12px}
+/* BADGES MODALIDADE */
+.mod-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.3px}
+.mod-dispensa{background:rgba(46,204,143,.15);color:#2ECC8F}
+.mod-pregao{background:rgba(74,158,245,.15);color:#4A9EF5}
+/* TAB DISPENSA */
+.tab.dispensa-tab{border:1px solid rgba(46,204,143,.3);color:#2ECC8F}
+.tab.dispensa-tab.active{background:#2ECC8F;color:var(--navy)}
+</style>
 </body>
 </html>
