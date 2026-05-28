@@ -105,7 +105,7 @@ let currentFiltered=[];
 let currentPage=1;
 let pageSize=30; // padrão
 
-const MODALIDADE_NOMES = { 1:'Concorrência', 6:'Dispensa', 8:'Pregão Eletrônico' };
+const MODALIDADE_NOMES = { 4:'Concorrência - Eletrônica', 5:'Concorrência - Presencial', 6:'Pregão - Eletrônico', 7:'Pregão - Presencial', 8:'Dispensa', 9:'Inexigibilidade' };
 
 document.getElementById('current-date').textContent =
   new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
@@ -175,8 +175,8 @@ function showView(view) {
 
 function isDispensa(licitacao) {
   if(!licitacao) return false;
-  // Modalidade 6 = Dispensa (campo numérico ou string)
-  if(licitacao.modalidade==6 || licitacao.modalidade==='6' || licitacao.modalidade==='Dispensa') return true;
+  // Modalidade 8 = Dispensa
+  if(licitacao.modalidade==8 || licitacao.modalidade==='8' || licitacao.modalidade==='Dispensa') return true;
   // Fallback: portal licitamaisbrasil geralmente é dispensa
   // Só usar se não tiver modalidade definida
   return false;
