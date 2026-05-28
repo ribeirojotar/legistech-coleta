@@ -133,7 +133,7 @@ def salvar_no_supabase(lista, modalidade):
             "uf": extrair_uf(lic),
             "link_pncp": lic.get("linkSistemaOrigem"),
             "valor_estimado": lic.get("valorTotalEstimado"),
-            "modalidade": modalidade,
+            "modalidade": NOMES_MODALIDADE.get(modalidade, str(modalidade)),
         }
         if not item["link_pncp"]:
             continue

@@ -151,7 +151,7 @@ async function init() {
     const [m, p, l] = await Promise.all([
       sbGet('matches', '?select=id,perfil_id,licitacao_id,score_calculado,notificado,status,resumo_ia,data_match&order=score_calculado.desc&limit=1000'),
       sbGet('perfis_empresa', '?select=id,nome,segmento,uf_interesse,palavras_chave,palavras_excluir,ativo&order=nome'),
-      sbGet('licitacoes_pncp', '?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao&order=data_publicacao.desc&limit=500'),
+      sbGet('licitacoes_pncp', '?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao,modalidade&order=data_publicacao.desc&limit=500'),
     ]);
     allMatches = Array.isArray(m) ? m : [];
     allPerfis  = Array.isArray(p) ? p : [];
@@ -372,6 +372,7 @@ function cardMatch(m, licMap, perfMap) {
         <span>🏛️ ${lic.orgao_nome || '—'}</span>
         <span>📍 ${lic.uf || '—'}</span>
         <span>💰 ${valor}</span>
+        ${lic.modalidade ? `<span>📄 ${lic.modalidade}</span>` : ''}
       </div>
       <div class="card-actions">
         ${lic.link_pncp ? `<a href="${lic.link_pncp}" target="_blank" rel="noopener"><button class="btn-act ghost">🔗 Ver edital</button></a>` : ''}
@@ -499,7 +500,7 @@ function renderLicList(lics) {
   return lics.map(l => `
     <div class="match-card" style="grid-template-columns:1fr">
       <div>
-        <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px">${l.uf || '?'} · ${l.data_publicacao || '—'}</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px">${l.uf || '?'} · ${l.data_publicacao || '—'}${l.modalidade ? ' · ' + l.modalidade : ''}</div>
         <div class="match-objeto">${(l.objeto || '').substring(0, 130)}…</div>
         <div class="match-meta" style="margin-top:6px">
           <span>🏛️ ${l.orgao_nome || '—'}</span>
