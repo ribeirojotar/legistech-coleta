@@ -89,9 +89,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const MODALIDADES = {1:'Leilão - Eletrônico',2:'Leilão - Presencial',3:'Diálogo Competitivo',4:'Concorrência - Eletrônica',5:'Concorrência - Presencial',6:'Pregão - Eletrônico',7:'Pregão - Presencial',8:'Dispensa',9:'Inexigibilidade',12:'Credenciamento'};
-function nomeModalidade(cod) { return cod ? (MODALIDADES[cod] || String(cod)) : null; }
-
 const SB_URL = 'https://ojrowbvwnraqdikrvnlv.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qcm93YnZ3bnJhcWRpa3J2bmx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTE0MzcsImV4cCI6MjA5MzQyNzQzN30.YefvG7spS8lyOHaylTzUmByJhGuc9A-lsWKLc3KcqIA';
 const H = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
@@ -108,6 +105,7 @@ let currentFiltered=[];
 let currentPage=1;
 let pageSize=30; // padrão
 
+const MODALIDADE_NOMES = { 1:'Concorrência', 6:'Dispensa', 8:'Pregão Eletrônico' };
 
 document.getElementById('current-date').textContent =
   new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
@@ -266,7 +264,8 @@ function scoreRing(score) {
 
 function modalidadeNome(m) {
   if(!m && m!==0) return '';
-  return nomeModalidade(parseInt(m)) || 'Mod. '+m;
+  const n=MODALIDADE_NOMES[parseInt(m)];
+  return n||'Mod. '+m;
 }
 
 function modalidadeBadge(m) {
@@ -304,10 +303,6 @@ function cardMatch(m, licMap, perfMap) {
         <span>🏛️ ${lic.orgao_nome||'—'}</span>
         <span>📍 ${lic.uf||'—'}</span>
         <span>💰 ${valor}</span>
-<<<<<<< HEAD
-=======
-        ${nomeModalidade(lic.modalidade) ? `<span>📄 ${nomeModalidade(lic.modalidade)}</span>` : ''}
->>>>>>> c591311 (fix: salvar modalidade como inteiro e sanitizar código 6 para Pregão com SRP)
       </div>
       <div class="card-actions">
         ${lic.link_pncp?`<a href="${lic.link_pncp}" target="_blank" rel="noopener"><button class="btn-act ghost">🔗 Ver edital</button></a>`:''}
@@ -464,17 +459,9 @@ function renderLicList(lics) {
   return lics.map(l=>`
     <div class="match-card" style="grid-template-columns:1fr">
       <div>
-<<<<<<< HEAD
         <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px;display:flex;gap:8px;align-items:center">
           <span>${l.uf||'?'} · ${l.data_publicacao||'—'}</span>
           ${l.modalidade?modalidadeBadge(l.modalidade):''}
-=======
-        <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px">${l.uf || '?'} · ${l.data_publicacao || '—'}${nomeModalidade(l.modalidade) ? ' · ' + nomeModalidade(l.modalidade) : ''}</div>
-        <div class="match-objeto">${(l.objeto || '').substring(0, 130)}…</div>
-        <div class="match-meta" style="margin-top:6px">
-          <span>🏛️ ${l.orgao_nome || '—'}</span>
-          <span>💰 ${l.valor_estimado ? 'R$ ' + Number(l.valor_estimado).toLocaleString('pt-BR') : 'Não informado'}</span>
->>>>>>> c591311 (fix: salvar modalidade como inteiro e sanitizar código 6 para Pregão com SRP)
         </div>
         <div class="match-objeto">${(l.objeto||'').substring(0,130)}…</div>
         <div class="match-meta" style="margin-top:6px">
