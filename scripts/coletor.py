@@ -34,18 +34,20 @@ TIMEOUT = 30
 MAX_RETRY = 2
 SLEEP_RETRY = 20
 SLEEP_PAGE = 1.5
-MODALIDADES = [8, 1, 6]
+MODALIDADES = [4, 5, 6, 7, 8, 9]  # Concorrência, Pregão, Dispensa, Inexigibilidade
 
-# Mapa de códigos para nomes
+# Mapa de códigos reais da API do PNCP
 NOMES_MODALIDADE = {
-    1: "Concorrência",
-    2: "Diálogo Competitivo",
-    3: "Concurso",
-    4: "Leilão",
-    5: "Pregão",
-    6: "Dispensa",
-    7: "Inexigibilidade",
-    8: "Pregão Eletrônico",
+    1: "Leilão - Eletrônico",
+    2: "Leilão - Presencial",
+    3: "Diálogo Competitivo",
+    4: "Concorrência - Eletrônica",
+    5: "Concorrência - Presencial",
+    6: "Pregão - Eletrônico",
+    7: "Pregão - Presencial",
+    8: "Dispensa",
+    9: "Inexigibilidade",
+    12: "Credenciamento",
 }
 
 HEADERS = {
@@ -120,32 +122,20 @@ def buscar_pagina_com_retry(uf, data_alvo, modalidade, pagina):
     return {}
 
 
-_KEYWORDS_PREGAO = {"registro de preco", "registro de preço", "srp", "pregao", "pregão"}
-
-def sanitizar_modalidade(modalidade, objeto):
-    if modalidade == 6 and objeto:
-        texto = objeto.lower()
-        if any(kw in texto for kw in _KEYWORDS_PREGAO):
-            return 8
-    return modalidade
-
-
 def salvar_no_supabase(lista, modalidade):
     if not lista:
         return 0, 0
     salvos = 0
     erros = 0
     for lic in lista:
-        objeto = lic.get("objetoCompra")
-        mod = sanitizar_modalidade(modalidade, objeto)
         item = {
             "orgao_nome": lic.get("orgaoEntidade", {}).get("razaoSocial"),
-            "objeto": objeto,
+            "objeto": lic.get("objetoCompra"),
             "data_publicacao": lic.get("dataPublicacaoPncp", "").split("T")[0] or None,
             "uf": extrair_uf(lic),
             "link_pncp": lic.get("linkSistemaOrigem"),
             "valor_estimado": lic.get("valorTotalEstimado"),
-            "modalidade": mod,
+            "modalidade": modalidade,
         }
         if not item["link_pncp"]:
             continue
