@@ -86,6 +86,28 @@
   </div>
 </div>
 
+
+<!-- MODAL: ANÁLISE -->
+<div class="modal-overlay" id="modal-analise">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">🔍 Analisar Oportunidade</div>
+    <input type="hidden" id="a-match-id">
+    <div class="modal-field">
+      <label class="modal-label">Data da Sessão (abertura das propostas)</label>
+      <input type="date" class="modal-input" id="a-data-sessao">
+      <div class="modal-hint">Data em que as propostas serão abertas. Licitações com sessão vencida somem do dashboard.</div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Anotações (opcional)</label>
+      <textarea class="modal-textarea" id="a-notas" placeholder="Observações sobre esta licitação, documentos necessários, contatos..." style="min-height:80px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="fecharModalAnalise()">Cancelar</button>
+      <button class="btn primary" onclick="salvarAnalise()">Salvar e Analisar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -105,7 +127,7 @@ let currentFiltered=[];
 let currentPage=1;
 let pageSize=30; // padrão
 
-const MODALIDADE_NOMES = { 4:'Concorrência - Eletrônica', 5:'Concorrência - Presencial', 6:'Pregão - Eletrônico', 7:'Pregão - Presencial', 8:'Dispensa', 9:'Inexigibilidade' };
+const MODALIDADE_NOMES = { 1:'Concorrência', 6:'Dispensa', 8:'Pregão Eletrônico' };
 
 document.getElementById('current-date').textContent =
   new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
@@ -114,7 +136,7 @@ async function init() {
   document.getElementById('main-content').innerHTML='<div class="loading"><div class="spinner"></div> Carregando...</div>';
   try {
     const [m,p,l] = await Promise.all([
-      sbGet('matches','?select=id,perfil_id,licitacao_id,score_calculado,notificado,status,resumo_ia,data_match&order=score_calculado.desc&limit=2000'),
+      sbGet('matches','?select=id,perfil_id,licitacao_id,score_calculado,notificado,status,resumo_ia,data_match,data_sessao,notas&order=score_calculado.desc&limit=2000'),
       sbGet('perfis_empresa','?select=id,nome,segmento,uf_interesse,palavras_chave,palavras_excluir,ativo&order=nome'),
       sbGet('licitacoes_pncp','?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao,modalidade&order=data_publicacao.desc&limit=1000'),
     ]);
@@ -175,15 +197,21 @@ function showView(view) {
 
 function isDispensa(licitacao) {
   if(!licitacao) return false;
-  // Modalidade 8 = Dispensa
-  if(licitacao.modalidade==8 || licitacao.modalidade==='8' || licitacao.modalidade==='Dispensa') return true;
+  // Modalidade 6 = Dispensa (campo numérico ou string)
+  if(licitacao.modalidade==6 || licitacao.modalidade==='6' || licitacao.modalidade==='Dispensa') return true;
   // Fallback: portal licitamaisbrasil geralmente é dispensa
   // Só usar se não tiver modalidade definida
   return false;
 }
 
 function getFilteredMatches() {
-  let ms=allMatches.filter(m=>m.status!=='descartado');
+  const hoje=new Date().toISOString().slice(0,10);
+  let ms=allMatches.filter(m=>{
+    if(m.status==='descartado') return false;
+    // Se tem data_sessao e já passou, remove do dashboard
+    if(m.data_sessao && m.data_sessao < hoje) return false;
+    return true;
+  });
   if(activeClientFilter) ms=ms.filter(m=>m.perfil_id==activeClientFilter);
   if(dateFilter) {
     const ids=new Set(allLics.filter(l=>l.data_publicacao?.startsWith(dateFilter)).map(l=>l.id));
@@ -299,6 +327,8 @@ function cardMatch(m, licMap, perfMap) {
       </div>
       <div class="match-objeto">${objeto.substring(0,130)}${objeto.length>130?'…':''}</div>
       ${resumo?`<div class="match-resumo">💡 ${resumo}</div>`:''}
+      ${m.notas?`<div class="match-resumo" style="color:var(--gold)">📝 ${m.notas}</div>`:''}
+      ${m.data_sessao?`<div class="match-resumo" style="color:${m.data_sessao<new Date().toISOString().slice(0,10)?'var(--red)':'var(--green)'}">🗓️ Sessão: ${m.data_sessao}</div>`:''}
       <div class="match-meta">
         <span>🏛️ ${lic.orgao_nome||'—'}</span>
         <span>📍 ${lic.uf||'—'}</span>
@@ -306,7 +336,7 @@ function cardMatch(m, licMap, perfMap) {
       </div>
       <div class="card-actions">
         ${lic.link_pncp?`<a href="${lic.link_pncp}" target="_blank" rel="noopener"><button class="btn-act ghost">🔗 Ver edital</button></a>`:''}
-        <button class="btn-act warn"    onclick="mudarStatus('${m.id}','analisando')">🔍 Analisar</button>
+        <button class="btn-act warn"    onclick="abrirModalAnalise('${m.id}')">🔍 Analisar</button>
         <button class="btn-act success" onclick="mudarStatus('${m.id}','participando')">✅ Participar</button>
         <button class="btn-act discard" onclick="mudarStatus('${m.id}','descartado')">Descartar</button>
       </div>
@@ -363,6 +393,8 @@ function renderMatches() {
   const perfMap=Object.fromEntries(allPerfis.map(p=>[p.id,p]));
   const novos=ms.filter(m=>!m.status||m.status==='novo').length;
   const comIA=ms.filter(m=>m.resumo_ia).length;
+  const dispensas=ms.filter(m=>isDispensa(licMap[m.licitacao_id])).length;
+
   document.getElementById('main-content').innerHTML=
     renderMetrics(ms)+
     `<div class="section-header">
@@ -378,6 +410,7 @@ function renderMatches() {
         <div class="tab" onclick="filterTab('novos',this)">Novos ${novos>0?`(${novos})`:''}</div>
         <div class="tab" onclick="filterTab('score alto',this)">Score alto</div>
         <div class="tab" onclick="filterTab('com ia',this)">Com IA ${comIA>0?`(${comIA})`:''}</div>
+        <div class="tab dispensa-tab" onclick="filterTab('dispensa',this)">⚡ Dispensa ${dispensas>0?`(${dispensas})`:''}</div>
         <div class="tab" onclick="filterTab('analisando',this)">Analisando</div>
         <div class="tab" onclick="filterTab('participando',this)">Participando</div>
       </div>
@@ -582,6 +615,47 @@ async function confirmarExclusao() {
   fecharConfirm();
   if(ok) { showToast('Cliente excluído.'); await init(); }
   else showToast('❌ Erro ao excluir.');
+}
+
+
+function abrirModalAnalise(matchId) {
+  const m=allMatches.find(m=>m.id==matchId);
+  document.getElementById('a-match-id').value=matchId;
+  document.getElementById('a-data-sessao').value=m?.data_sessao||'';
+  document.getElementById('a-notas').value=m?.notas||'';
+  document.getElementById('modal-analise').classList.add('open');
+}
+
+function fecharModalAnalise() {
+  document.getElementById('modal-analise').classList.remove('open');
+}
+
+async function salvarAnalise() {
+  const matchId=document.getElementById('a-match-id').value;
+  const dataSessao=document.getElementById('a-data-sessao').value;
+  const notas=document.getElementById('a-notas').value.trim();
+  
+  if(!dataSessao) { showToast('⚠️ Informe a data da sessão'); return; }
+  
+  const ok=await sbPatch('matches',matchId,{
+    status:'analisando',
+    data_sessao:dataSessao||null,
+    notas:notas||null
+  });
+  
+  if(ok) {
+    const m=allMatches.find(m=>m.id==matchId);
+    if(m) { m.status='analisando'; m.data_sessao=dataSessao; m.notas=notas; }
+    fecharModalAnalise();
+    showToast('🔍 Adicionado para análise!');
+    currentFiltered=getFilteredMatches();
+    _renderPage();
+    buildSidebarClients();
+    const metricsEl=document.querySelector('.metrics');
+    if(metricsEl) metricsEl.outerHTML=renderMetrics(getFilteredMatches());
+  } else {
+    showToast('❌ Erro ao salvar.');
+  }
 }
 
 init();
