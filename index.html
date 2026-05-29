@@ -127,7 +127,45 @@ let currentFiltered=[];
 let currentPage=1;
 let pageSize=30; // padrão
 
-const MODALIDADE_NOMES = { 1:'Concorrência', 6:'Dispensa', 8:'Pregão Eletrônico' };
+const MODALIDADE_NOMES = { 4:'Concorrência - Eletrônica', 5:'Concorrência - Presencial', 6:'Pregão - Eletrônico', 7:'Pregão - Presencial', 8:'Dispensa', 9:'Inexigibilidade' };
+
+// Prazos mínimos (dias úteis) por modalidade — Art. 55, Lei 14.133/2021
+const PRAZOS_ART55 = {
+  4:{ dias:10, base:'Art. 55, II, a — Concorrência (serviços/menor preço)' },
+  5:{ dias:10, base:'Art. 55, II, a — Concorrência (serviços/menor preço)' },
+  6:{ dias: 8, base:'Art. 55, I, a  — Pregão (bens/menor preço)' },
+  7:{ dias: 8, base:'Art. 55, I, a  — Pregão (bens/menor preço)' },
+};
+
+function addDiasUteis(dataStr, dias) {
+  const d=new Date(dataStr+'T12:00:00'); let n=0;
+  while(n<dias){ d.setDate(d.getDate()+1); const w=d.getDay(); if(w!==0&&w!==6)n++; }
+  return d;
+}
+
+function prazoInfo(lic) {
+  if(!lic||!lic.data_publicacao) return null;
+  const p=PRAZOS_ART55[parseInt(lic.modalidade)];
+  if(!p) return null;
+  const enc=addDiasUteis(lic.data_publicacao,p.dias);
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const diff=Math.ceil((enc-hoje)/86400000);
+  return {diff,ativa:diff>=0,base:p.base,dias:p.dias};
+}
+
+function prazoBadge(lic) {
+  const info=prazoInfo(lic);
+  const mod=parseInt(lic?.modalidade);
+  if(!info){
+    if(mod===8) return '<span class="prazo-badge prazo-na" title="Dispensa — sem prazo mín. do Art. 55">⚡ Dispensa</span>';
+    if(mod===9) return '<span class="prazo-badge prazo-na" title="Inexigibilidade — sem prazo mín. do Art. 55">⚡ Inexigível</span>';
+    return '';
+  }
+  if(info.diff>3)  return `<span class="prazo-badge prazo-ok"  title="${info.base}">⏳ ${info.diff} dias</span>`;
+  if(info.diff>=1) return `<span class="prazo-badge prazo-warn" title="${info.base}">⚠️ ${info.diff} dia${info.diff>1?'s':''}</span>`;
+  if(info.diff===0)return `<span class="prazo-badge prazo-warn" title="${info.base}">⚠️ Vence hoje</span>`;
+  return `<span class="prazo-badge prazo-enc" title="${info.base} — prazo mínimo estimado encerrado">🔒 Enc. estimado</span>`;
+}
 
 document.getElementById('current-date').textContent =
   new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
@@ -232,9 +270,13 @@ function applyTab(ms, tabText) {
   if(t==='novos')       return ms.filter(m=>!m.status||m.status==='novo');
   if(t==='score alto')  return ms.filter(m=>m.score_calculado>=80);
   if(t==='com ia')      return ms.filter(m=>m.resumo_ia);
-  if(t==='dispensa')    return ms.filter(m=>isDispensa(licMap[m.licitacao_id]));
-  if(t==='analisando')  return ms.filter(m=>m.status==='analisando');
-  if(t==='participando')return ms.filter(m=>m.status==='participando');
+  if(t==='dispensa')       return ms.filter(m=>isDispensa(licMap[m.licitacao_id]));
+  if(t==='analisando')     return ms.filter(m=>m.status==='analisando');
+  if(t==='participando')   return ms.filter(m=>m.status==='participando');
+  if(t==='dentro do prazo') return ms.filter(m=>{
+    const info=prazoInfo(licMap[m.licitacao_id]);
+    return !info||info.ativa; // sem prazo mín. definido (dispensa/inex.) = inclui
+  });
   return ms;
 }
 
@@ -324,6 +366,7 @@ function cardMatch(m, licMap, perfMap) {
         ${m.notificado?'<span class="notif-pill">📱 Notificado</span>':''}
         ${data?`<span class="card-date">📅 ${data}</span>`:''}
         ${modalidadeBadge(lic.modalidade)}
+        ${prazoBadge(lic)}
       </div>
       <div class="match-objeto">${objeto.substring(0,130)}${objeto.length>130?'…':''}</div>
       ${resumo?`<div class="match-resumo">💡 ${resumo}</div>`:''}
@@ -394,6 +437,7 @@ function renderMatches() {
   const novos=ms.filter(m=>!m.status||m.status==='novo').length;
   const comIA=ms.filter(m=>m.resumo_ia).length;
   const dispensas=ms.filter(m=>isDispensa(licMap[m.licitacao_id])).length;
+  const noPrazo=ms.filter(m=>{ const i=prazoInfo(licMap[m.licitacao_id]); return i&&i.ativa; }).length;
 
   document.getElementById('main-content').innerHTML=
     renderMetrics(ms)+
@@ -411,6 +455,7 @@ function renderMatches() {
         <div class="tab" onclick="filterTab('score alto',this)">Score alto</div>
         <div class="tab" onclick="filterTab('com ia',this)">Com IA ${comIA>0?`(${comIA})`:''}</div>
         <div class="tab dispensa-tab" onclick="filterTab('dispensa',this)">⚡ Dispensa ${dispensas>0?`(${dispensas})`:''}</div>
+        <div class="tab prazo-tab" onclick="filterTab('dentro do prazo',this)" title="Licitações dentro do prazo mínimo estimado (Art. 55, Lei 14.133/2021)">⏳ Dentro do prazo ${noPrazo>0?`(${noPrazo})`:''}</div>
         <div class="tab" onclick="filterTab('analisando',this)">Analisando</div>
         <div class="tab" onclick="filterTab('participando',this)">Participando</div>
       </div>
@@ -679,6 +724,15 @@ init();
 /* TAB DISPENSA */
 .tab.dispensa-tab{border:1px solid rgba(46,204,143,.3);color:#2ECC8F}
 .tab.dispensa-tab.active{background:#2ECC8F;color:var(--navy)}
+/* TAB PRAZO */
+.tab.prazo-tab{border:1px solid rgba(255,193,7,.3);color:#FFC107}
+.tab.prazo-tab.active{background:#FFC107;color:var(--navy)}
+/* BADGES DE PRAZO — Art. 55, Lei 14.133/2021 */
+.prazo-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.3px;cursor:help}
+.prazo-ok  {background:rgba(46,204,143,.15);color:#2ECC8F}
+.prazo-warn{background:rgba(255,193,7,.18);color:#FFC107}
+.prazo-enc {background:rgba(255,255,255,.06);color:var(--text-dim)}
+.prazo-na  {background:rgba(74,158,245,.12);color:#4A9EF5}
 </style>
 </body>
 </html>
