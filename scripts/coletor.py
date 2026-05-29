@@ -136,6 +136,7 @@ def salvar_no_supabase(lista, modalidade):
             "link_pncp": lic.get("linkSistemaOrigem"),
             "valor_estimado": lic.get("valorTotalEstimado"),
             "modalidade": modalidade,
+            "data_encerramento_proposta": lic.get("dataEncerramentoProposta"),
         }
         if not item["link_pncp"]:
             continue
