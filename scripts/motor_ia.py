@@ -7,6 +7,7 @@ Fluxo: consulta matches sem resumo_ia → chama Gemini → atualiza ou remove o 
 import os
 import time
 import logging
+import argparse
 from google import genai
 from dotenv import load_dotenv, find_dotenv
 from supabase import create_client, Client
@@ -61,24 +62,28 @@ def analisar_licitacao_com_ia(objeto: str, perfil_nome: str, palavras_chave: lis
         return score_val, resumo_val
 
     except Exception as e:
-        if "429" in str(e):
+        err = str(e)
+        if "429" in err:
             return "COTA", "Cota Gemini atingida."
+        if "503" in err or "502" in err or "UNAVAILABLE" in err:
+            return "ERRO_TEMP", "Serviço temporariamente indisponível."
         log.warning(f"Erro ao chamar Gemini: {e}")
         return 0, "Erro ao processar item."
 
 
-def executar_analise():
+def executar_analise(max_matches: int = 0):
     log.info("=== Motor de Análise Semântica (IA) ===")
 
     try:
-        # Busca apenas matches ainda não analisados pela IA (resumo_ia nulo)
-        matches = (
+        q = (
             supabase.table("matches")
             .select("id, perfil_id, licitacao_id")
             .filter("resumo_ia", "is", "null")
-            .execute()
-            .data or []
+            .order("id", desc=True)  # prioriza matches mais recentes
         )
+        if max_matches > 0:
+            q = q.limit(max_matches)
+        matches = q.execute().data or []
     except Exception as e:
         log.error(f"Erro ao buscar matches pendentes: {e}")
         return
@@ -132,6 +137,10 @@ def executar_analise():
                 perfil["nome"],
                 perfil["palavras_chave"],
             )
+            if score == "ERRO_TEMP":
+                log.warning(f"  Erro temporário Gemini. Pulando match {match['id']} (não deletado).")
+                score = None
+                break
             if score != "COTA":
                 break
             cota_tentativas += 1
@@ -140,6 +149,11 @@ def executar_analise():
                 return
             log.warning(f"Cota atingida. Aguardando {SLEEP_COTA}s (retry {cota_tentativas}/{MAX_RETRY_COTA})...")
             time.sleep(SLEEP_COTA)
+
+        if score is None:
+            if i < len(matches):
+                time.sleep(SLEEP_ENTRE_REQUESTS)
+            continue
 
         log.info(f"  Score: {score} | {str(resumo)[:70]}")
 
@@ -165,4 +179,8 @@ def executar_analise():
 
 
 if __name__ == "__main__":
-    executar_analise()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max", type=int, default=0,
+                        help="Máximo de matches a processar por execução (0 = sem limite)")
+    args = parser.parse_args()
+    executar_analise(max_matches=args.max)

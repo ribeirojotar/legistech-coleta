@@ -30,13 +30,14 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Rodar coletor PNCP
-        run: python scripts/coletor.py --ufs PI MA --dias 30
+        run: python scripts/coletor.py --ufs PI MA --dias 3
 
       - name: Rodar motor de matching
         run: python scripts/motor_matching.py
 
       - name: Rodar motor de IA
-        run: python scripts/motor_ia.py
+        # --max 50: processa até 50 matches (~11 min), priorizando os mais recentes
+        run: python scripts/motor_ia.py --max 50
         # Falha de cota ou timeout do Gemini não deve cancelar o envio de alertas
         continue-on-error: true
 
