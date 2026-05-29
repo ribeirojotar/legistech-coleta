@@ -144,13 +144,23 @@ function addDiasUteis(dataStr, dias) {
 }
 
 function prazoInfo(lic) {
-  if(!lic||!lic.data_publicacao) return null;
+  if(!lic) return null;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+
+  // Usa data real do PNCP quando disponível
+  if(lic.data_encerramento_proposta) {
+    const enc=new Date(lic.data_encerramento_proposta);
+    const diff=Math.ceil((enc-hoje)/86400000);
+    return {diff,ativa:diff>=0,base:'Data real PNCP',real:true,dias:null};
+  }
+
+  // Fallback: estimativa pelo prazo mínimo do Art. 55
+  if(!lic.data_publicacao) return null;
   const p=PRAZOS_ART55[parseInt(lic.modalidade)];
   if(!p) return null;
   const enc=addDiasUteis(lic.data_publicacao,p.dias);
-  const hoje=new Date(); hoje.setHours(0,0,0,0);
   const diff=Math.ceil((enc-hoje)/86400000);
-  return {diff,ativa:diff>=0,base:p.base,dias:p.dias};
+  return {diff,ativa:diff>=0,base:p.base,real:false,dias:p.dias};
 }
 
 function prazoBadge(lic) {
@@ -161,10 +171,12 @@ function prazoBadge(lic) {
     if(mod===9) return '<span class="prazo-badge prazo-na" title="Inexigibilidade — sem prazo mín. do Art. 55">⚡ Inexigível</span>';
     return '';
   }
-  if(info.diff>3)  return `<span class="prazo-badge prazo-ok"  title="${info.base}">⏳ ${info.diff} dias</span>`;
-  if(info.diff>=1) return `<span class="prazo-badge prazo-warn" title="${info.base}">⚠️ ${info.diff} dia${info.diff>1?'s':''}</span>`;
-  if(info.diff===0)return `<span class="prazo-badge prazo-warn" title="${info.base}">⚠️ Vence hoje</span>`;
-  return `<span class="prazo-badge prazo-enc" title="${info.base} — prazo mínimo estimado encerrado">🔒 Enc. estimado</span>`;
+  const suf=info.real?'':' ~est.';
+  const tip=info.real?`Prazo real: ${info.base}`:`Estimado: ${info.base}`;
+  if(info.diff>3)  return `<span class="prazo-badge prazo-ok"  title="${tip}">⏳ ${info.diff} dias${suf}</span>`;
+  if(info.diff>=1) return `<span class="prazo-badge prazo-warn" title="${tip}">⚠️ ${info.diff} dia${info.diff>1?'s':''}${suf}</span>`;
+  if(info.diff===0)return `<span class="prazo-badge prazo-warn" title="${tip}">⚠️ Vence hoje${suf}</span>`;
+  return `<span class="prazo-badge prazo-enc" title="${tip} — encerrado">🔒 Enc.${suf}</span>`;
 }
 
 document.getElementById('current-date').textContent =
@@ -176,7 +188,7 @@ async function init() {
     const [m,p,l] = await Promise.all([
       sbGet('matches','?select=id,perfil_id,licitacao_id,score_calculado,notificado,status,resumo_ia,data_match,data_sessao,notas&order=score_calculado.desc&limit=2000'),
       sbGet('perfis_empresa','?select=id,nome,segmento,uf_interesse,palavras_chave,palavras_excluir,ativo&order=nome'),
-      sbGet('licitacoes_pncp','?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao,modalidade&order=data_publicacao.desc&limit=1000'),
+      sbGet('licitacoes_pncp','?select=id,objeto,orgao_nome,uf,valor_estimado,link_pncp,data_publicacao,modalidade,data_encerramento_proposta&order=data_publicacao.desc&limit=1000'),
     ]);
     allMatches=Array.isArray(m)?m:[];
     allPerfis=Array.isArray(p)?p:[];
